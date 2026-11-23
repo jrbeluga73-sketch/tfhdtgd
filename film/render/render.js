@@ -20,19 +20,22 @@ const CHROME = process.env.CHROME || '/usr/local/lib/ms-playwright/chromium-1208
   await p.addScriptTag({ path: path.join(DIR, 'director.js') });
   console.log(await p.evaluate(fps => { SB.edit = false; FILM.fps = fps; FILM.setup(); return `${MAPD.key} ${state} inf ${INF.length} tanks ${tanks.length}`; }, FPS));
   await p.addScriptTag({ path: path.join(DIR, 'sound/hooks.js') }); // sound events, captured during this render
+  // OUT.skip.jsonl: the same log for the frames simulated without drawing before --from, so the battle this run lived
+  // through can be compared with the segment rendered before it (continuity at the join)
+  const skOut = DRY || !FROM ? null : require('fs').createWriteStream(out.replace(/\.mp4$/, '') + '.skip.jsonl');
   const evOut = DRY ? null : require('fs').createWriteStream(out.replace(/\.mp4$/, '') + '.events.jsonl');
   if (DRY || FROM > 0) await p.evaluate(() => { window.__render = render; render = () => {}; }); // --from: simulate up to the start without drawing
   const N = Math.round(LEN * FPS), t0 = Date.now();
   for (let i = 0; i < N; i++) {
     const t = i / FPS, skip = t < FROM;
     if (!DRY && FROM > 0 && Math.abs(t - FROM) < 1e-6) await p.evaluate(() => { render = window.__render; });
-    const [d, ev] = await p.evaluate(([dt, t, dry]) => { FILM.t = t; const n0 = now; __vt.advance(dt); if (dry) { __probe(t, false); return [FILM.probe(), null]; }
-      const f = FILM.frame(); return [f, __probe(t, true).replace(/^\{/, `{"n0":${n0},`)]; }, [1000 / FPS, t, DRY || skip]);
-    if (ev && evOut) evOut.write(ev + '\n');
+    const [d, ev] = await p.evaluate(([dt, t, dry, skipLog]) => { FILM.t = t; const n0 = now; __vt.advance(dt); if (dry) { const q = __probe(t, false); return [FILM.probe(), skipLog ? q : null]; }
+      const f = FILM.frame(); return [f, __probe(t, true).replace(/^\{/, `{"n0":${n0},`)]; }, [1000 / FPS, t, DRY || skip, !!skOut]);
+    if (ev && skip && skOut) skOut.write(ev + '\n'); else if (ev && evOut) evOut.write(ev + '\n');
     if (DRY && d && d !== globalThis.__lastC) console.log(`t=${t.toFixed(2)} ${d}`); globalThis.__lastC = d;
     if (!skip && !DRY && !ff.stdin.write(Buffer.from(d.slice(d.indexOf(',') + 1), 'base64'))) await new Promise(r => ff.stdin.once('drain', r));
     if (i % (DRY ? FPS * 5 : 60) === 0) console.log(`frame ${i}/${N} t=${t.toFixed(1)}s ${((Date.now() - t0) / (i + 1)).toFixed(0)} ms/frame`, await p.evaluate(() => `pos ${player.pos.map(Math.round)} wp ${JSON.stringify(FILM.dbg())} foes ${INF.filter(s => s.team === 1 && !s.dead).length} friends ${INF.filter(s => s.team === 0 && !s.dead).length}`));
   }
   if (opt('eval')) console.log('EVAL', await p.evaluate(opt('eval')));
-  if (evOut) evOut.end(); ff.stdin.end(); await new Promise(r => ff.on('close', r)); await b.close(); console.log('done', out, (Date.now() - t0) / 1000, 's');
+  if (evOut) evOut.end(); if (skOut) skOut.end(); ff.stdin.end(); await new Promise(r => ff.on('close', r)); await b.close(); console.log('done', out, (Date.now() - t0) / 1000, 's');
 })();
