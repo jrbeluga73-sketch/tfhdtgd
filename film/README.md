@@ -16,7 +16,7 @@ the north ridge.
 ```
 cd render && npm i && node render.js harrow-brook.mp4                      # default: fast settings (low gfx, 640x268, 6 fps)
 node render.js x.mp4 --dry                                                 # simulate only (~40 s) and log the soldier's progress
-node render.js hb.mp4 --w 1024 --h 430 --fps 6 --interp                    # the shared cut: 6 fps capture, motion-interpolated to 24
+node render.js hb.mp4 --w 1024 --h 430 --fps 24                            # the shared cut: every frame rendered (~0.5 s/frame on one CPU)
 node render.js hq.mp4 --gfx medium --w 1600 --h 670 --fps 24 --out-w 1920  # full quality: needs a GPU or many hours
 ```
 
@@ -24,3 +24,6 @@ If you change the route or pauses in `director.js`, re-time `SHOTS` and `TITLES`
 
 On a slow machine, render in segments that start and end on shot cuts (`--from 346 --len 410`, etc.) and join them
 with ffmpeg. Each segment re-simulates from the start without drawing, and a stall only costs that segment.
+
+`--interp` (motion-interpolating a low-fps capture up to 24 fps) is cheaper but breaks up small running soldiers: the
+made-up frames between real ones show them faint, doubled or missing legs. The shared cut does not use it.
