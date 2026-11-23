@@ -78,3 +78,10 @@ time (`onended`). Under load, a sound was dropped at a different moment, which s
 identical to 4:03.0 differed by one call there (`noiseHit < sfxBoom < explode`). `director.js` now sets
 `voice = () => true` for the film. Two concurrent runs are then identical over 0:00–7:00, and the battle matches the
 old one up to 4:02, so footage before 3:58 is kept. Captures made with this fix are in `sound/captured/fixed/`.
+
+**v14 coverage.** Every segment from 0:00 to 10:00 was rendered with the fix, one browser at a time, and its sound comes
+from the events captured in that render. Each lead-in from 6:02 on matches the fixed battle on every frame before it
+(up to 3,264 frames for the 9:04 segment), so 0:00–1:20 and 1:38–10:00 are one battle. 1:20–1:38 is rendered at 24 fps; a 1/24 s
+timestep gives a close but different battle (the hero is 0.45–0.76 m from his 6 fps position, with the same soldiers
+near him), so the 1:20 and 1:38 cuts join two very close battles. Known framing bug: when the follow camera takes its
+high fallback (1:33–1:38), it keeps aiming ahead and the hero drops to the bottom edge of the frame.
