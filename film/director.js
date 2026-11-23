@@ -84,7 +84,7 @@
     [80, "follow", {}], [98, "low", {}], [108, "side", {}], [120, "wide", { at: [-260, -330] }], [134, "follow", {}], [146, "ots", {}], [160, "close", {}],
     [170, "aerial", { c: [-200, -210], r: 160, h: 70, w: 0.05 }], [186, "follow", {}], [202, "low", {}], [216, "side", {}], [226, "vista", {}],
     [238, "aerial", { c: [HB.B[0], HB.B[1]], r: 230, h: 95, w: 0.03 }], [252, "close", {}], [262, "follow", {}], [278, "side", {}], [292, "follow", {}],
-    [304, "low", {}], [316, "ots", {}], [332, "side", {}], [346, "follow", {}], [362, "low", {}], [374, "ots", {}], [390, "close", {}], [400, "side", {}],
+    [304, "low", {}], [316, "ots", {}], [332, "side", {}], [344.5, "follow", {}], [362, "low", {}], [374, "ots", {}], [390, "close", {}], [400, "side", {}],
     [410, "ots", {}], [424, "aerial", { c: [HB.B[0], HB.B[1]], r: 150, h: 60, w: -0.04 }], [436, "follow", {}], [450, "low", {}], [458, "ots", {}],
     [474, "side", {}], [486, "follow", {}], [496, "ots", {}], [512, "close", {}], [520, "follow", {}], [530, "ots", {}], [544, "side", {}],
     [554, "follow", {}], [564, "low", {}], [574, "aerial", { c: [HB.C[0], HB.C[1]], r: 110, h: 45, w: 0.04 }], [588, "aerial", { c: [HB.C[0], HB.C[1]], r: 300, h: 140, w: -0.02 }],
@@ -92,14 +92,20 @@
   const TITLES = [[3, 12, "HARROW BROOK", "Autumn, 1944 · first light"], [24, 33, "Private Tom Ashby", "Radio operator, 2nd Platoon"], [126, 133, "The orchard hamlet", ""],
     [228, 236, "Observation Hill", "Call the guns on the church village"], [306, 313, "The ford", ""], [378, 385, "The church village", ""],
     [478, 486, "The north ridge", "The enemy's guns"], [578, 586, "The gun farm", "Taken by 2nd Platoon"], [592, 600, "HARROW BROOK", "Rendered in the Steel Front engine"]];
+  // a framing is blocked by a building, wall, standing tree or bush (each as a box) between it and his eyes, or around the camera
+  const nearXZ = (a, x, z, L) => Math.abs(x - a[0]) < L + 12 && Math.abs(z - a[2]) < L + 12;
+  const blocked = (a, b) => { const d = vsub(b, a), L = Math.hypot(...d), b1 = L > 1.2 ? vadd(a, d.map(v => v * (L - 1) / L)) : b;
+    return buildings.some(bd => segAABB(a, b, bd.mn, bd.mx)) ||
+      trees.some(tr => !tr.fall && !tr.falling && nearXZ(a, tr.x, tr.z, L) && segAABB(a, b1, [tr.x - 2.4 * tr.s, tr.y, tr.z - 2.4 * tr.s], [tr.x + 2.4 * tr.s, tr.y + 9 * tr.s, tr.z + 2.4 * tr.s])) ||
+      (typeof BUSHES !== "undefined" && BUSHES.some(([x, z, sc]) => nearXZ(a, x, z, L) && segAABB(a, b1, [x - 1.4 * sc, heightAt(x, z) - 0.2, z - 1.4 * sc], [x + 1.4 * sc, heightAt(x, z) + 1.9 * sc, z + 1.4 * sc]))); };
   let sm = null;
-  const blocked = (a, b) => buildings.some(bd => segAABB(a, b, bd.mn, bd.mx));
   function shotCam() {
     const t = FILM.t; let i = 0; while (i + 1 < SHOTS.length && SHOTS[i + 1][0] <= t) i++;
     const [t0, kind, o] = SHOTS[i], u = t - t0, p = P(), e = vadd(p.pos, [0, 1.3, 0]), yaw = p.F ? p.F.bodyYaw : cam.yaw, fx = Math.sin(yaw), fz = Math.cos(yaw);
     let pos, at, fov = 0.75;
-    // close shots try their framing, then fall back (mirrored side, then higher and wider) when a wall or sandbag is in the way
-    const framing = (...c) => { const k = c.length; let j = sm && sm.i === i ? sm.j : 0; if (blocked(c[j].pos, e)) { j = 0; while (j < k - 1 && blocked(c[j].pos, e)) j++; } pick = j; return c[j]; };
+    // close shots try their framing, then fall back (mirrored side, then higher and wider) when a wall, tree or bush is in the way;
+    // a shot never steps back to an earlier framing, so it cuts at most twice
+    const framing = (...c) => { const k = c.length, j0 = sm && sm.i === i ? sm.j : 0; let j = j0; if (blocked(c[j].pos, e)) { j = j0 + 1; while (j < k - 1 && blocked(c[j].pos, e)) j++; } pick = Math.min(j, k - 1); return c[pick]; };
     let pick = 0;
     if (kind === "aerial") { const a = u * o.w + i; pos = [o.c[0] + Math.sin(a) * o.r, heightAt(o.c[0], o.c[1]) + o.h, o.c[1] + Math.cos(a) * o.r]; at = [o.c[0], heightAt(o.c[0], o.c[1]), o.c[1]]; fov = 0.9; }
     else if (kind === "crane") { pos = [o.c[0] + o.r, heightAt(o.c[0], o.c[1]) + o.h - u * 1.1, o.c[1] - o.r * 0.6]; at = e; fov = 0.7; }

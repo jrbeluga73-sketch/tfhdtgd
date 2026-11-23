@@ -27,3 +27,7 @@ with ffmpeg. Each segment re-simulates from the start without drawing, and a sta
 
 `--interp` (motion-interpolating a low-fps capture up to 24 fps) is cheaper but breaks up small running soldiers: the
 made-up frames between real ones show them faint, doubled or missing legs. The shared cut does not use it.
+
+Close shots fall back to another framing when a building, wall, tree or bush is between the camera and the soldier
+(`steelfront.html` records bush positions in `BUSHES` for this). Props that are not in those lists, such as the plank
+stack by the ford road, are not checked.
