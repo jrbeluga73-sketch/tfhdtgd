@@ -85,7 +85,7 @@
     [170, "aerial", { c: [-200, -210], r: 160, h: 70, w: 0.05 }], [186, "follow", {}], [202, "low", {}], [216, "side", {}], [226, "vista", {}],
     [238, "aerial", { c: [HB.B[0], HB.B[1]], r: 230, h: 95, w: 0.03 }], [252, "close", {}], [262, "follow", {}], [278, "side", {}], [292, "follow", {}],
     [304, "low", {}], [316, "ots", {}], [332, "side", {}], [344.5, "follow", {}], [362, "low", {}], [374, "ots", {}], [390, "close", {}], [400, "side", {}],
-    [410, "ots", {}], [424, "aerial", { c: [HB.B[0], HB.B[1]], r: 150, h: 60, w: -0.04 }], [436, "follow", {}], [450, "low", {}], [458, "ots", {}],
+    [410, "ots", {}], [424, "aerial", { c: [HB.B[0], HB.B[1]], r: 150, h: 60, w: -0.04 }], [436, "follow", {}], [450, "low", {}], [458, "foe", {}],
     [474, "side", {}], [486, "follow", {}], [496, "ots", {}], [512, "close", {}], [520, "follow", {}], [530, "ots", {}], [544, "side", {}],
     [554, "follow", {}], [564, "low", {}], [574, "aerial", { c: [HB.C[0], HB.C[1]], r: 110, h: 45, w: 0.04 }], [588, "aerial", { c: [HB.C[0], HB.C[1]], r: 300, h: 140, w: -0.02 }],
   ];
@@ -98,15 +98,20 @@
     return buildings.some(bd => segAABB(a, b, bd.mn, bd.mx)) ||
       trees.some(tr => !tr.fall && !tr.falling && nearXZ(a, tr.x, tr.z, L) && segAABB(a, b1, [tr.x - 2.4 * tr.s, tr.y, tr.z - 2.4 * tr.s], [tr.x + 2.4 * tr.s, tr.y + 9 * tr.s, tr.z + 2.4 * tr.s])) ||
       (typeof BUSHES !== "undefined" && BUSHES.some(([x, z, sc]) => nearXZ(a, x, z, L) && segAABB(a, b1, [x - 1.4 * sc, heightAt(x, z) - 0.2, z - 1.4 * sc], [x + 1.4 * sc, heightAt(x, z) + 1.9 * sc, z + 1.4 * sc]))); };
-  let sm = null;
+  let sm = null, foeT = null;
+  const foeInView = (e, fx, fz) => { if (foeT && !foeT.dead && foeT.st !== "gone" && infLos(foeT.p, P().pos) && sm && sm.i === foeShot) return foeT;
+    let b = null, bd = 220; for (const s of enemies()) { const dx = s.p[0] - e[0], dz = s.p[2] - e[2], d = Math.hypot(dx, dz);
+      if (d < bd && (dx * fx + dz * fz) / d > 0.3 && infLos(s.p, P().pos)) { bd = d; b = s; } }
+    foeT = b; return b; };
+  let foeShot = -1;
   function shotCam() {
     const t = FILM.t; let i = 0; while (i + 1 < SHOTS.length && SHOTS[i + 1][0] <= t) i++;
-    const [t0, kind, o] = SHOTS[i], u = t - t0, p = P(), e = vadd(p.pos, [0, 1.3, 0]), yaw = p.F ? p.F.bodyYaw : cam.yaw, fx = Math.sin(yaw), fz = Math.cos(yaw);
+    foeShot = i; const [t0, kind, o] = SHOTS[i], u = t - t0, p = P(), e = vadd(p.pos, [0, 1.3, 0]), yaw = p.F ? p.F.bodyYaw : cam.yaw, fx = Math.sin(yaw), fz = Math.cos(yaw);
     let pos, at, fov = 0.75;
     // close shots try their framing, then fall back (mirrored side, then higher and wider) when a wall, tree or bush is in the way;
     // a shot never steps back to an earlier framing, so it cuts at most twice
     const framing = (...c) => { const k = c.length, j0 = sm && sm.i === i ? sm.j : 0; let j = j0; if (blocked(c[j].pos, e)) { j = j0 + 1; while (j < k - 1 && blocked(c[j].pos, e)) j++; } pick = Math.min(j, k - 1); return c[pick]; };
-    let pick = 0;
+    let pick = 0, foe = null;
     if (kind === "aerial") { const a = u * o.w + i; pos = [o.c[0] + Math.sin(a) * o.r, heightAt(o.c[0], o.c[1]) + o.h, o.c[1] + Math.cos(a) * o.r]; at = [o.c[0], heightAt(o.c[0], o.c[1]), o.c[1]]; fov = 0.9; }
     else if (kind === "crane") { pos = [o.c[0] + o.r, heightAt(o.c[0], o.c[1]) + o.h - u * 1.1, o.c[1] - o.r * 0.6]; at = e; fov = 0.7; }
     else if (kind === "follow") { pos = vadd(e, [-fx * 5.5, 1.4, -fz * 5.5]); at = vadd(e, [fx * 8, 0, fz * 8]); fov = 0.85; }
@@ -118,6 +123,10 @@
       { pos: vadd(e, [fx * 2.2 - fz * 1.2, 0.15, fz * 2.2 + fx * 1.2]), at: vadd(e, [0, 0.2, 0]), fov: 0.6 }, { pos: vadd(e, [fx * 3 + fz * 2, 1.6, fz * 3 - fx * 2]), at: e, fov: 0.65 }));
     else if (kind === "ots") ({ pos, at, fov } = framing({ pos: vadd(e, [-fx * 4.4 + fz * 1.5, 0.6, -fz * 4.4 - fx * 1.5]), at: vadd(e, [fx * 30, 0, fz * 30]), fov: 0.8 }, // he sits in the right third
       { pos: vadd(e, [-fx * 4.4 - fz * 1.5, 0.6, -fz * 4.4 + fx * 1.5]), at: vadd(e, [fx * 30, 0, fz * 30]), fov: 0.8 }, { pos: vadd(e, [-fx * 6, 3, -fz * 6]), at: vadd(e, [fx * 30, 0, fz * 30]), fov: 0.85 }));
+    else if (kind === "foe" && (foe = foeInView(e, fx, fz))) { // a long lens past his shoulder on the enemy he is fighting, so the enemy reads on screen
+      const q = [foe.p[0], foe.p[1] + 1.1, foe.p[2]], d = vsub(q, e), z = Math.hypot(d[0], d[2]), sx = d[2] / z, sz = -d[0] / z;
+      pos = vadd(e, [-d[0] / z * 3.2 + sx * 1.1, 0.5, -d[2] / z * 3.2 + sz * 1.1]); at = q; fov = clamp(2 * Math.atan(1.7 / (z * 0.3)), 0.05, 0.5); pick = 1 + INF.indexOf(foe); } // a new enemy is a clean cut
+    else if (kind === "foe") ({ pos, at, fov } = { pos: vadd(e, [-fx * 4.4 + fz * 1.5, 0.6, -fz * 4.4 - fx * 1.5]), at: vadd(e, [fx * 30, 0, fz * 30]), fov: 0.8 });
     else if (kind === "wide") { const A = o.at; pos = [A[0], heightAt(A[0], A[1]) + 6, A[1]]; at = e; fov = 0.45; }
     else if (kind === "vista") { pos = vadd(e, [-fx * 3 - fz * 1.6, 0.9, -fz * 3 + fx * 1.6]); at = [HB.B[0], heightAt(HB.B[0], HB.B[1]) + 6, HB.B[1]]; fov = 0.55; }
     pos[1] = Math.max(pos[1], heightAt(pos[0], pos[2]) + 0.35);
@@ -153,5 +162,6 @@
     if (fade > 0) { cx.fillStyle = `rgba(0,0,0,${fade})`; cx.fillRect(0, 0, Wd, Hd); }
     return comp.toDataURL("image/jpeg", q);
   };
-  FILM.probe = () => ""; FILM.setup = setup; FILM.camAt = () => state === "playing" ? shotCam() : null; // the sound pass places sounds around this camera FILM.shotDbg = () => sm && { i: sm.i, j: sm.j, pos: sm.pos.map(Math.round), at: sm.at.map(Math.round) }; FILM.dbg = () => ({ wi, waitT: +waitT.toFixed(1), n: ROUTE.length });
+  // FILM.camAt: the film camera, for the sound pass (sound/events.js)
+  FILM.probe = () => ""; FILM.setup = setup; FILM.camAt = () => state === "playing" ? shotCam() : null; FILM.shotDbg = () => sm && { i: sm.i, j: sm.j, pos: sm.pos.map(Math.round), at: sm.at.map(Math.round) }; FILM.dbg = () => ({ wi, waitT: +waitT.toFixed(1), n: ROUTE.length });
 })();
