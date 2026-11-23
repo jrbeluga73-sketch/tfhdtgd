@@ -100,9 +100,11 @@
       trees.some(tr => !tr.fall && !tr.falling && nearXZ(a, tr.x, tr.z, L) && segAABB(a, b1, [tr.x - 2.4 * tr.s, tr.y, tr.z - 2.4 * tr.s], [tr.x + 2.4 * tr.s, tr.y + 9 * tr.s, tr.z + 2.4 * tr.s])) ||
       (typeof BUSHES !== "undefined" && BUSHES.some(([x, z, sc]) => nearXZ(a, x, z, L) && segAABB(a, b1, [x - 1.4 * sc, heightAt(x, z) - 0.2, z - 1.4 * sc], [x + 1.4 * sc, heightAt(x, z) + 1.9 * sc, z + 1.4 * sc]))); };
   let sm = null, foeT = null;
-  const foeInView = (e, fx, fz) => { if (foeT && !foeT.dead && foeT.st !== "gone" && infLos(foeT.p, P().pos) && !blocked(e, [foeT.p[0], foeT.p[1] + 1.1, foeT.p[2]]) && sm && sm.i === foeShot) return foeT;
+  // the lens must see him: no wall, tree, bush or tank (a wreck included) between his shoulder and the enemy
+  const clearTo = (e, q) => !blocked(e, q) && !tanks.some(t => !t.type.air && segSphere(e, q, center(t), 3.2));
+  const foeInView = (e, fx, fz) => { if (foeT && !foeT.dead && foeT.st !== "gone" && infLos(foeT.p, P().pos) && clearTo(e, [foeT.p[0], foeT.p[1] + 1.1, foeT.p[2]]) && sm && sm.i === foeShot) return foeT;
     let b = null, bd = 220; for (const s of enemies()) { const dx = s.p[0] - e[0], dz = s.p[2] - e[2], d = Math.hypot(dx, dz);
-      if (d < bd && (dx * fx + dz * fz) / d > 0.3 && infLos(s.p, P().pos) && !blocked(e, [s.p[0], s.p[1] + 1.1, s.p[2]])) { bd = d; b = s; } } // no wall, tree or bush hides him from the lens
+      if (d < bd && (dx * fx + dz * fz) / d > 0.3 && infLos(s.p, P().pos) && clearTo(e, [s.p[0], s.p[1] + 1.1, s.p[2]])) { bd = d; b = s; } }
     foeT = b; return b; };
   let foeShot = -1;
   function shotCam() {
