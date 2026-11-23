@@ -19,11 +19,12 @@ const CHROME = process.env.CHROME || '/usr/local/lib/ms-playwright/chromium-1208
   for (let i = 0; i < 10; i++) await p.evaluate(() => __vt.advance(33));
   await p.addScriptTag({ path: path.join(DIR, 'director.js') });
   console.log(await p.evaluate(() => { SB.edit = false; FILM.setup(); return `${MAPD.key} ${state} inf ${INF.length} tanks ${tanks.length}`; }));
-  if (DRY) await p.evaluate(() => { render = () => {}; });
+  if (DRY || FROM > 0) await p.evaluate(() => { window.__render = render; render = () => {}; }); // --from: simulate up to the start without drawing
   const N = Math.round(LEN * FPS), t0 = Date.now();
   for (let i = 0; i < N; i++) {
     const t = i / FPS, skip = t < FROM;
-    const d = await p.evaluate(([dt, t, dry]) => { FILM.t = t; __vt.advance(dt); return dry ? '' : FILM.frame(); }, [1000 / FPS, t, DRY]);
+    if (!DRY && FROM > 0 && Math.abs(t - FROM) < 1e-6) await p.evaluate(() => { render = window.__render; });
+    const d = await p.evaluate(([dt, t, dry]) => { FILM.t = t; __vt.advance(dt); return dry ? '' : FILM.frame(); }, [1000 / FPS, t, DRY || skip]);
     if (!skip && !DRY && !ff.stdin.write(Buffer.from(d.slice(d.indexOf(',') + 1), 'base64'))) await new Promise(r => ff.stdin.once('drain', r));
     if (i % (DRY ? FPS * 5 : 60) === 0) console.log(`frame ${i}/${N} t=${t.toFixed(1)}s ${((Date.now() - t0) / (i + 1)).toFixed(0)} ms/frame`, await p.evaluate(() => `pos ${player.pos.map(Math.round)} wp ${JSON.stringify(FILM.dbg())} foes ${INF.filter(s => s.team === 1 && !s.dead).length} friends ${INF.filter(s => s.team === 0 && !s.dead).length}`));
   }
