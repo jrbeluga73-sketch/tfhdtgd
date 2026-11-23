@@ -85,3 +85,18 @@ from the events captured in that render. Each lead-in from 6:02 on matches the f
 timestep gives a close but different battle (the hero is 0.45–0.76 m from his 6 fps position, with the same soldiers
 near him), so the 1:20 and 1:38 cuts join two very close battles. Known framing bug: when the follow camera takes its
 high fallback (1:33–1:38), it keeps aiming ahead and the hero drops to the bottom edge of the frame.
+
+**v15.** The game steps its battle in pieces of at most 50 ms per drawn frame, so a 6 fps frame is 50+50+50+17 ms of
+steps and a 24 fps frame is one 42 ms step, and the two give different battles. `render.js --fps 6 --sub 4` runs the
+game's 6 fps frame unchanged and draws after each of its steps: 24 drawn frames a second of exactly the 6 fps battle,
+spaced 50/50/50/17 ms of battle time (the director keeps its clock on the simulated frame; the camera and titles run on the
+drawn time, `FILM.tc`). A frame slowed by a kill or hit has fewer steps, and its last drawing is held. A first version
+advanced the clock in four 50/50/50/17 ms pieces instead; the game's kill slow-down scales a whole frame, so that one
+drifted from 1:35.8 on.
+`render/subjoin.py` checks such a render against the 6 fps logs. The high fallbacks of the follow and over-the-shoulder
+shots now aim just ahead of him instead of 10–30 m ahead. `render.js --dry --diag d.jsonl` logs where he sits on screen
+in every frame and `render/framing.py d.jsonl` lists the runs where a close shot loses him: with the old aim, 1:32.8–1:37.8
+and 4:25.5–4:37.8 (feet below the frame); with the new aim, none. 1:20–1:38, 4:22–4:38 and 7:38–7:54 are re-rendered
+this way (`sound/captured/fixed/cut15.json`, logs `*.sub24.*`); each matches the 6 fps battle on every simulated frame
+(`subjoin.py`) and in its lead-in (`join.py`), so all of 0:00–10:00 is one battle. `render/onscreen.py OUT.events.jsonl FOV`
+measures where he sat in the frames actually drawn. The rest of the film is still 6 fps frames shown four times.

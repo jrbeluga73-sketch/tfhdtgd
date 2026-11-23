@@ -113,7 +113,7 @@
     foeT = b; return b; };
   let foeShot = -1;
   function shotCam() {
-    const t = FILM.t; let i = 0; while (i + 1 < SHOTS.length && SHOTS[i + 1][0] <= t) i++;
+    const t = FILM.tc ?? FILM.t; let i = 0; while (i + 1 < SHOTS.length && SHOTS[i + 1][0] <= t) i++;
     foeShot = i; const [t0, kind, o] = SHOTS[i], u = t - t0, p = P(), e = vadd(p.pos, [0, 1.3, 0]), yaw = p.F ? p.F.bodyYaw : cam.yaw, fx = Math.sin(yaw), fz = Math.cos(yaw);
     let pos, at, fov = 0.75;
     // close shots try their framing, then fall back (mirrored side, then higher and wider) when a wall, tree or bush is in the way;
@@ -127,7 +127,7 @@
     else if (kind === "crane") { pos = [o.c[0] + o.r, heightAt(o.c[0], o.c[1]) + o.h - u * 1.1, o.c[1] - o.r * 0.6]; at = e; fov = 0.7; }
     else if (kind === "follow") ({ pos, at, fov } = framing({ pos: vadd(e, [-fx * 5.5, 1.4, -fz * 5.5]), at: vadd(e, [fx * 8, 0, fz * 8]), fov: 0.85, hug: true }, // a wall beside him: step out to the open side
       { pos: vadd(e, [-fx * 5 + fz * 3.5, 1.4, -fz * 5 - fx * 3.5]), at: vadd(e, [fx * 8, 0, fz * 8]), fov: 0.85, hug: true },
-      { pos: vadd(e, [-fx * 5 - fz * 3.5, 1.4, -fz * 5 + fx * 3.5]), at: vadd(e, [fx * 8, 0, fz * 8]), fov: 0.85, hug: true }, { pos: vadd(e, [-fx * 6.5, 6, -fz * 6.5]), at: vadd(e, [fx * 10, 0, fz * 10]), fov: 0.85 }));
+      { pos: vadd(e, [-fx * 5 - fz * 3.5, 1.4, -fz * 5 + fx * 3.5]), at: vadd(e, [fx * 8, 0, fz * 8]), fov: 0.85, hug: true }, { pos: vadd(e, [-fx * 6.5, 6, -fz * 6.5]), at: vadd(e, [fx * 4, -0.5, fz * 4]), fov: 0.85 })); // high: aimed just ahead of him, so he stays in the lower third
     else if (kind === "side") ({ pos, at, fov } = framing({ pos: vadd(e, [fz * 6.5, 0.3, -fx * 6.5]), at: vadd(e, [fx * 2, 0, fz * 2]), fov: 0.7 },
       { pos: vadd(e, [-fz * 6.5, 0.3, fx * 6.5]), at: vadd(e, [fx * 2, 0, fz * 2]), fov: 0.7 }, { pos: vadd(e, [-fx * 7, 3.5, -fz * 7]), at: vadd(e, [fx * 6, 0, fz * 6]), fov: 0.85 }));
     else if (kind === "low") ({ pos, at, fov } = framing({ pos: vadd(p.pos, [fx * 7 + fz * 1.5, 0.45, fz * 7 - fx * 1.5]), at: e, fov: 0.8 },
@@ -135,7 +135,7 @@
     else if (kind === "close") ({ pos, at, fov } = framing({ pos: vadd(e, [fx * 2.2 + fz * 1.2, 0.15, fz * 2.2 - fx * 1.2]), at: vadd(e, [0, 0.2, 0]), fov: 0.6 },
       { pos: vadd(e, [fx * 2.2 - fz * 1.2, 0.15, fz * 2.2 + fx * 1.2]), at: vadd(e, [0, 0.2, 0]), fov: 0.6 }, { pos: vadd(e, [fx * 3 + fz * 2, 1.6, fz * 3 - fx * 2]), at: e, fov: 0.65 }));
     else if (kind === "ots") ({ pos, at, fov } = framing({ pos: vadd(e, [-fx * 4.4 + fz * 1.5, 0.6, -fz * 4.4 - fx * 1.5]), at: vadd(e, [fx * 30, 0, fz * 30]), fov: 0.8 }, // he sits in the right third
-      { pos: vadd(e, [-fx * 4.4 - fz * 1.5, 0.6, -fz * 4.4 + fx * 1.5]), at: vadd(e, [fx * 30, 0, fz * 30]), fov: 0.8 }, { pos: vadd(e, [-fx * 6, 3, -fz * 6]), at: vadd(e, [fx * 30, 0, fz * 30]), fov: 0.85 }));
+      { pos: vadd(e, [-fx * 4.4 - fz * 1.5, 0.6, -fz * 4.4 + fx * 1.5]), at: vadd(e, [fx * 30, 0, fz * 30]), fov: 0.8 }, { pos: vadd(e, [-fx * 6, 3, -fz * 6]), at: vadd(e, [fx * 10, 0, fz * 10]), fov: 0.85 }));
     else if (kind === "foe" && (foe = foeInView(e, fx, fz))) { // a long lens past his shoulder on the enemy he is fighting, so the enemy reads on screen
       const q = [foe.p[0], foe.p[1] + 1.1, foe.p[2]], d = vsub(q, e), z = Math.hypot(d[0], d[2]), sx = d[2] / z, sz = -d[0] / z;
       pos = vadd(e, [-d[0] / z * 3.2 + sx * 1.1, 0.5, -d[2] / z * 3.2 + sz * 1.1]); at = q; fov = clamp(2 * Math.atan(1.7 / (z * 0.3)), 0.05, 0.5); pick = 1 + INF.indexOf(foe); } // a new enemy is a clean cut
@@ -167,7 +167,7 @@
   FILM.frame = (q = 0.88) => {
     const g = document.getElementById("game"); comp.width = g.width; comp.height = g.height; const Wd = comp.width, Hd = comp.height;
     cx.drawImage(g, 0, 0);
-    const t = FILM.t, fade = Math.max(smoothstep(4, 0, t), smoothstep(FILM.len - 6, FILM.len, t));
+    const t = FILM.tc ?? FILM.t, fade = Math.max(smoothstep(4, 0, t), smoothstep(FILM.len - 6, FILM.len, t));
     for (const [a, b, h1, h2] of TITLES) if (t >= a && t < b) { const al = Math.min(smoothstep(a, a + 1.5, t), smoothstep(b, b - 1.5, t));
       cx.save(); cx.globalAlpha = al; cx.textAlign = "center"; cx.fillStyle = "#f3ead8"; cx.shadowColor = "rgba(0,0,0,.7)"; cx.shadowBlur = Hd * 0.02;
       cx.font = `600 ${Math.round(Hd * 0.075)}px Georgia, serif`; cx.fillText(h1, Wd / 2, Hd * 0.78);
