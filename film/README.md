@@ -71,3 +71,10 @@ from 3:58 branched at 4:03.5 twice, and one 9:04 segment branched at 4:06 during
 found, so check every join. So render one browser at a time, and compare each
 segment's `.skip.jsonl` with the earlier segments' `.events.jsonl` before splicing them. `mix.py` takes the cut as
 `CUT=cut.json`, and each piece's sounds come from its own log. Captured logs are kept in `sound/captured/`.
+
+**Why runs branched (found).** The game's sound code draws from the battle's random stream: `noiseHit` calls
+`Math.random()` only when `voice()` admits the sound, and `voice()` counts sounds that the audio thread releases in real
+time (`onended`). Under load, a sound was dropped at a different moment, which shifted every later draw. Two runs
+identical to 4:03.0 differed by one call there (`noiseHit < sfxBoom < explode`). `director.js` now sets
+`voice = () => true` for the film. Two concurrent runs are then identical over 0:00–7:00, and the battle matches the
+old one up to 4:02, so footage before 3:58 is kept. Captures made with this fix are in `sound/captured/fixed/`.
