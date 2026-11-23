@@ -1,0 +1,1 @@
+{ "name": "harrow-brook-render", "private": true, "description": "Renders the Harrow Brook film from steelfront.html", "scripts": { "render": "node render.js harrow-brook.mp4" }, "dependencies": { "playwright-core": "1.58.0" } }
