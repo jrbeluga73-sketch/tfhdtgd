@@ -4,7 +4,7 @@
 // village, then across the ford into the village. The film camera is laid over the game camera only while drawing,
 // so the soldier's aim and bullets still come from his own gameplay camera.
 (() => {
-  const FILM = window.FILM = { t: 0, fps: 6, len: 600, shot: null, cut: true, title: null, fade: 0 };
+  const FILM = window.FILM = { t: 0, len: 600, shot: null, cut: true, title: null, fade: 0 };
   const W = (x, z) => [x, z];
   // the mission route: [x, z, pause seconds at the point, what he does there]
   const ROUTE = [
@@ -92,50 +92,39 @@
   const TITLES = [[3, 12, "HARROW BROOK", "Autumn, 1944 · first light"], [24, 33, "Private Tom Ashby", "Radio operator, 2nd Platoon"], [126, 133, "The orchard hamlet", ""],
     [228, 236, "Observation Hill", "Call the guns on the church village"], [306, 313, "The ford", ""], [378, 385, "The church village", ""],
     [478, 486, "The north ridge", "The enemy's guns"], [578, 586, "The gun farm", "Taken by 2nd Platoon"], [592, 600, "HARROW BROOK", "Rendered in the Steel Front engine"]];
-  // the camera tries its framing first, then the mirrored side, then a closer one, and cuts away when a house, a wall
-  // or the ground hides the soldier for more than a moment
-  const CANDS = [[1, 1], [-1, 1], [1, 0.6], [-1, 0.6]];
   let sm = null;
-  const framing = (kind, o, u, i, e, p, fx, fz, sd, k) => {
-    let pos, at, fov = 0.75;
-    if (kind === "aerial") { const a = u * o.w + i; pos = [o.c[0] + Math.sin(a) * o.r, heightAt(o.c[0], o.c[1]) + o.h, o.c[1] + Math.cos(a) * o.r]; at = [o.c[0], heightAt(o.c[0], o.c[1]), o.c[1]]; fov = 0.9; }
-    else if (kind === "crane") { pos = [o.c[0] + o.r, heightAt(o.c[0], o.c[1]) + o.h - u * 1.1, o.c[1] - o.r * 0.6]; at = e; fov = 0.7; }
-    else if (kind === "follow") { const l = (1 - sd) * 0.8; pos = vadd(e, [-fx * 5.5 * k + fz * l, 1.4, -fz * 5.5 * k - fx * l]); at = vadd(e, [fx * 8, 0, fz * 8]); fov = 0.85; }
-    else if (kind === "side") { pos = vadd(e, [fz * 6.5 * sd * k, 0.3, -fx * 6.5 * sd * k]); at = vadd(e, [fx * 2, 0, fz * 2]); fov = 0.7; }
-    else if (kind === "low") { pos = vadd(p.pos, [fx * 7 * k + fz * 1.5 * sd, 0.45, fz * 7 * k - fx * 1.5 * sd]); at = e; fov = 0.8; }
-    else if (kind === "close") { pos = vadd(e, [fx * 2.2 * k + fz * 1.2 * sd, 0.15, fz * 2.2 * k - fx * 1.2 * sd]); at = vadd(e, [0, 0.2, 0]); fov = 0.6; }
-    else if (kind === "wide") { const A = o.at; pos = [A[0], heightAt(A[0], A[1]) + 6, A[1]]; at = e; fov = 0.45; }
-    else if (kind === "vista") { pos = vadd(e, [-fx * 3 * k - fz * 1.6 * sd, 0.9, -fz * 3 * k + fx * 1.6 * sd]); at = [HB.B[0], heightAt(HB.B[0], HB.B[1]) + 6, HB.B[1]]; fov = 0.55; }
-    else if (kind === "ots") { // over the shoulder along his aim, pulled back so he holds a third of the frame, not half
-      const ax = Math.sin(cam.yaw), az = Math.cos(cam.yaw), b = 3.6 * k;
-      pos = vadd(e, [-ax * b + az * 1.1 * sd, 0.45, -az * b - ax * 1.1 * sd]); at = vadd(e, [ax * 30, 30 * Math.tan(clamp(cam.pitch, -0.3, 0.3)) + 0.3, az * 30]); fov = 0.7; }
-    pos[1] = Math.max(pos[1], heightAt(pos[0], pos[2]) + 0.35);
-    return { pos, at, fov };
-  };
-  const tracks = k => k !== "aerial" && k !== "wide" && k !== "crane";
+  const blocked = (a, b) => buildings.some(bd => segAABB(a, b, bd.mn, bd.mx));
   function shotCam() {
     const t = FILM.t; let i = 0; while (i + 1 < SHOTS.length && SHOTS[i + 1][0] <= t) i++;
     const [t0, kind, o] = SHOTS[i], u = t - t0, p = P(), e = vadd(p.pos, [0, 1.3, 0]), yaw = p.F ? p.F.bodyYaw : cam.yaw, fx = Math.sin(yaw), fz = Math.cos(yaw);
-    if (!sm || sm.i !== i) sm = { i, c: 0, blockT: 0, pos: null };
-    let f = framing(kind, o, u, i, e, p, fx, fz, ...CANDS[sm.c]);
-    if (!tracks(kind)) { // fixed and flying cameras: smooth in the world
-      if (sm.pos === null) { sm.pos = f.pos; sm.at = f.at; } else { sm.pos = f.pos; sm.at = vlerp(sm.at, f.at, kind === "wide" ? 0.15 : 0.2); }
-      FILM.cand = sm.c; return { pos: sm.pos, at: sm.at, fov: f.fov };
-    }
-    // tracking cameras smooth their offset from him, so a running soldier can't outrun the frame
-    const off = vsub(f.pos, e), aoff = vsub(f.at, e);
-    if (sm.pos === null) { sm.off = off; sm.aoff = aoff; } else { sm.off = vlerp(sm.off, off, 0.25); sm.aoff = vlerp(sm.aoff, aoff, 0.3); }
-    let pos = vadd(e, sm.off); pos[1] = Math.max(pos[1], heightAt(pos[0], pos[2]) + 0.35); sm.pos = pos;
-    sm.blockT = los(pos, e) ? 0 : sm.blockT + 1 / FILM.fps;
-    if (sm.blockT > 0.4) { // a house, a wall or the ground has hidden him: cut to the first framing that sees him
-      for (let j = 1; j <= CANDS.length; j++) { const c = (sm.c + j) % CANDS.length, g = framing(kind, o, u, i, e, p, fx, fz, ...CANDS[c]); if (los(g.pos, e)) { sm.c = c; f = g; break; } }
-      sm.off = vsub(f.pos, e); sm.aoff = vsub(f.at, e); pos = f.pos; sm.blockT = 0; FILM.recut = (FILM.recut || 0) + 1;
-    }
-    sm.at = vadd(e, sm.aoff);
-    FILM.cand = sm.c;
-    return { pos, at: sm.at, fov: f.fov };
+    let pos, at, fov = 0.75;
+    // close shots try their framing, then fall back (mirrored side, then higher and wider) when a wall or sandbag is in the way
+    const framing = (...c) => { const k = c.length; let j = sm && sm.i === i ? sm.j : 0; if (blocked(c[j].pos, e)) { j = 0; while (j < k - 1 && blocked(c[j].pos, e)) j++; } pick = j; return c[j]; };
+    let pick = 0;
+    if (kind === "aerial") { const a = u * o.w + i; pos = [o.c[0] + Math.sin(a) * o.r, heightAt(o.c[0], o.c[1]) + o.h, o.c[1] + Math.cos(a) * o.r]; at = [o.c[0], heightAt(o.c[0], o.c[1]), o.c[1]]; fov = 0.9; }
+    else if (kind === "crane") { pos = [o.c[0] + o.r, heightAt(o.c[0], o.c[1]) + o.h - u * 1.1, o.c[1] - o.r * 0.6]; at = e; fov = 0.7; }
+    else if (kind === "follow") { pos = vadd(e, [-fx * 5.5, 1.4, -fz * 5.5]); at = vadd(e, [fx * 8, 0, fz * 8]); fov = 0.85; }
+    else if (kind === "side") ({ pos, at, fov } = framing({ pos: vadd(e, [fz * 6.5, 0.3, -fx * 6.5]), at: vadd(e, [fx * 2, 0, fz * 2]), fov: 0.7 },
+      { pos: vadd(e, [-fz * 6.5, 0.3, fx * 6.5]), at: vadd(e, [fx * 2, 0, fz * 2]), fov: 0.7 }, { pos: vadd(e, [-fx * 7, 3.5, -fz * 7]), at: vadd(e, [fx * 6, 0, fz * 6]), fov: 0.85 }));
+    else if (kind === "low") ({ pos, at, fov } = framing({ pos: vadd(p.pos, [fx * 7 + fz * 1.5, 0.45, fz * 7 - fx * 1.5]), at: e, fov: 0.8 },
+      { pos: vadd(p.pos, [fx * 7 - fz * 1.5, 0.45, fz * 7 + fx * 1.5]), at: e, fov: 0.8 }, { pos: vadd(e, [-fx * 7, 3.5, -fz * 7]), at: vadd(e, [fx * 6, 0, fz * 6]), fov: 0.85 }));
+    else if (kind === "close") ({ pos, at, fov } = framing({ pos: vadd(e, [fx * 2.2 + fz * 1.2, 0.15, fz * 2.2 - fx * 1.2]), at: vadd(e, [0, 0.2, 0]), fov: 0.6 },
+      { pos: vadd(e, [fx * 2.2 - fz * 1.2, 0.15, fz * 2.2 + fx * 1.2]), at: vadd(e, [0, 0.2, 0]), fov: 0.6 }, { pos: vadd(e, [fx * 3 + fz * 2, 1.6, fz * 3 - fx * 2]), at: e, fov: 0.65 }));
+    else if (kind === "ots") ({ pos, at, fov } = framing({ pos: vadd(e, [-fx * 4.4 + fz * 1.5, 0.6, -fz * 4.4 - fx * 1.5]), at: vadd(e, [fx * 30, 0, fz * 30]), fov: 0.8 }, // he sits in the right third
+      { pos: vadd(e, [-fx * 4.4 - fz * 1.5, 0.6, -fz * 4.4 + fx * 1.5]), at: vadd(e, [fx * 30, 0, fz * 30]), fov: 0.8 }, { pos: vadd(e, [-fx * 6, 3, -fz * 6]), at: vadd(e, [fx * 30, 0, fz * 30]), fov: 0.85 }));
+    else if (kind === "wide") { const A = o.at; pos = [A[0], heightAt(A[0], A[1]) + 6, A[1]]; at = e; fov = 0.45; }
+    else if (kind === "vista") { pos = vadd(e, [-fx * 3 - fz * 1.6, 0.9, -fz * 3 + fx * 1.6]); at = [HB.B[0], heightAt(HB.B[0], HB.B[1]) + 6, HB.B[1]]; fov = 0.55; }
+    pos[1] = Math.max(pos[1], heightAt(pos[0], pos[2]) + 0.35);
+    // smoothing is in seconds, not frames, and shots that ride with him smooth their offset from him, so a sprinting
+    // soldier never outruns a close camera (at 6 fps a per-frame lag left it metres behind, inside or behind his back)
+    const rel = kind !== "aerial" && kind !== "wide", o0 = rel ? e : [0, 0, 0], dt = sm ? Math.max(0, t - sm.t) : 0;
+    const op = vsub(pos, o0), oa = vsub(at, o0);
+    if (!sm || sm.i !== i || sm.j !== pick) sm = { i, j: pick, op, oa }; // new shot or a fallback: a clean cut, never a swoop through a wall
+    else { const kp = kind === "aerial" ? 1 : 1 - Math.exp(-dt * 4), ka = kind === "wide" ? 1 - Math.exp(-dt * 3) : 1 - Math.exp(-dt * 6);
+      sm.op = vlerp(sm.op, op, kp); sm.oa = vlerp(sm.oa, oa, ka); }
+    sm.t = t; sm.pos = vadd(o0, sm.op); sm.at = vadd(o0, sm.oa); sm.pos[1] = Math.max(sm.pos[1], heightAt(sm.pos[0], sm.pos[2]) + 0.35);
+    return { pos: sm.pos, at: sm.at, fov };
   }
-  FILM.probe = () => { shotCam(); return FILM.cand ? `cand ${FILM.cand} recuts ${FILM.recut}` : ''; };
   // ---- hooks into the game loop
   const step0 = step, render0 = render;
   step = function (h) { if (state === "playing") { drive(h); squad(); } step0(h); };
@@ -158,5 +147,5 @@
     if (fade > 0) { cx.fillStyle = `rgba(0,0,0,${fade})`; cx.fillRect(0, 0, Wd, Hd); }
     return comp.toDataURL("image/jpeg", q);
   };
-  FILM.setup = setup; FILM.dbg = () => ({ wi, waitT: +waitT.toFixed(1), n: ROUTE.length });
+  FILM.probe = () => ""; FILM.setup = setup; FILM.shotDbg = () => sm && { i: sm.i, j: sm.j, pos: sm.pos.map(Math.round), at: sm.at.map(Math.round) }; FILM.dbg = () => ({ wi, waitT: +waitT.toFixed(1), n: ROUTE.length });
 })();
