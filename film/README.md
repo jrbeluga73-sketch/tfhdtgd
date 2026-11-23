@@ -21,3 +21,6 @@ node render.js hq.mp4 --gfx medium --w 1600 --h 670 --fps 24 --out-w 1920  # ful
 ```
 
 If you change the route or pauses in `director.js`, re-time `SHOTS` and `TITLES` against a `--dry` log.
+
+On a slow machine, render in segments that start and end on shot cuts (`--from 346 --len 410`, etc.) and join them
+with ffmpeg. Each segment re-simulates from the start without drawing, and a stall only costs that segment.
