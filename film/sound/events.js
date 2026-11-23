@@ -13,7 +13,7 @@ const FPS = +(opt('fps') || 6), LEN = +(opt('len') || 600), DIR = path.resolve(_
   for (let i = 0; i < 600; i++) { await p.evaluate(() => __vt.advance(33)); if (await p.evaluate(() => window.steelFront && steelFront.boot && steelFront.boot.ready)) break; }
   await p.evaluate(() => { steelFront.profile.sbMap = 'brook'; steelFront.diag.scene('sandbox', 'medium'); SB.edit = false; });
   for (let i = 0; i < 10; i++) await p.evaluate(() => __vt.advance(33));
-  await p.addScriptTag({ path: path.join(DIR, 'director.js') });
+  await p.addScriptTag({ path: process.env.FILM_DIRECTOR || path.join(DIR, 'director.js') }); // FILM_DIRECTOR: the director an older cut was rendered with, so its sounds sit around that camera
   console.log(await p.evaluate(fps => { SB.edit = false; FILM.fps = fps; FILM.setup(); return `${MAPD.key} ${state}`; }, FPS));
   await p.evaluate(() => {
     window.__render = render; render = () => {};
