@@ -85,9 +85,9 @@
     [80, "follow", {}], [98, "low", {}], [108, "side", {}], [120, "wide", { at: [-260, -330] }], [134, "follow", {}], [146, "ots", {}], [160, "close", {}],
     [170, "aerial", { c: [-200, -210], r: 160, h: 70, w: 0.05 }], [186, "follow", {}], [202, "low", {}], [216, "side", {}], [226, "vista", {}],
     [238, "aerial", { c: [HB.B[0], HB.B[1]], r: 230, h: 95, w: 0.03 }], [252, "close", {}], [262, "follow", {}], [278, "side", {}], [292, "follow", {}],
-    [304, "low", {}], [316, "ots", {}], [332, "side", {}], [344.5, "follow", {}], [362, "low", {}], [374, "ots", {}], [390, "close", {}], [400, "side", {}],
-    [410, "ots", {}], [424, "aerial", { c: [HB.B[0], HB.B[1]], r: 150, h: 60, w: -0.04 }], [436, "follow", {}], [450, "low", {}], [458, "foe", {}],
-    [474, "side", {}], [486, "follow", {}], [496, "ots", {}], [512, "close", {}], [520, "follow", {}], [530, "ots", {}], [544, "side", {}],
+    [304, "low", {}], [316, "foe", {}], [332, "side", {}], [344.5, "follow", {}], [362, "low", {}], [374, "ots", {}], [390, "close", {}], [400, "side", {}],
+    [410, "foe", {}], [424, "aerial", { c: [HB.B[0], HB.B[1]], r: 150, h: 60, w: -0.04 }], [436, "follow", {}], [450, "low", {}], [458, "foe", {}],
+    [474, "side", {}], [486, "follow", {}], [496, "foe", {}], [512, "close", {}], [520, "follow", {}], [530, "ots", {}], [544, "side", {}],
     [554, "follow", {}], [564, "low", {}], [574, "aerial", { c: [HB.C[0], HB.C[1]], r: 110, h: 45, w: 0.04 }], [588, "aerial", { c: [HB.C[0], HB.C[1]], r: 300, h: 140, w: -0.02 }],
   ];
   const TITLES = [[3, 12, "HARROW BROOK", "Autumn, 1944 · first light"], [24, 33, "Private Tom Ashby", "Radio operator, 2nd Platoon"], [126, 133, "The orchard hamlet", ""],
@@ -100,9 +100,9 @@
       trees.some(tr => !tr.fall && !tr.falling && nearXZ(a, tr.x, tr.z, L) && segAABB(a, b1, [tr.x - 2.4 * tr.s, tr.y, tr.z - 2.4 * tr.s], [tr.x + 2.4 * tr.s, tr.y + 9 * tr.s, tr.z + 2.4 * tr.s])) ||
       (typeof BUSHES !== "undefined" && BUSHES.some(([x, z, sc]) => nearXZ(a, x, z, L) && segAABB(a, b1, [x - 1.4 * sc, heightAt(x, z) - 0.2, z - 1.4 * sc], [x + 1.4 * sc, heightAt(x, z) + 1.9 * sc, z + 1.4 * sc]))); };
   let sm = null, foeT = null;
-  const foeInView = (e, fx, fz) => { if (foeT && !foeT.dead && foeT.st !== "gone" && infLos(foeT.p, P().pos) && sm && sm.i === foeShot) return foeT;
+  const foeInView = (e, fx, fz) => { if (foeT && !foeT.dead && foeT.st !== "gone" && infLos(foeT.p, P().pos) && !blocked(e, [foeT.p[0], foeT.p[1] + 1.1, foeT.p[2]]) && sm && sm.i === foeShot) return foeT;
     let b = null, bd = 220; for (const s of enemies()) { const dx = s.p[0] - e[0], dz = s.p[2] - e[2], d = Math.hypot(dx, dz);
-      if (d < bd && (dx * fx + dz * fz) / d > 0.3 && infLos(s.p, P().pos)) { bd = d; b = s; } }
+      if (d < bd && (dx * fx + dz * fz) / d > 0.3 && infLos(s.p, P().pos) && !blocked(e, [s.p[0], s.p[1] + 1.1, s.p[2]])) { bd = d; b = s; } } // no wall, tree or bush hides him from the lens
     foeT = b; return b; };
   let foeShot = -1;
   function shotCam() {

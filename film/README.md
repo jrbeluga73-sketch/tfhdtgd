@@ -51,7 +51,7 @@ Every effect is synthesised in `mix.py`; no recordings are used:
 Then mux with `ffmpeg -i film.mp4 -i mix.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k film-sound.mp4`.
 The distant gunfire and far artillery under the mix are ambience, not tied to anything on screen.
 
-The 7:38 shot (`"foe"`) is a long lens past his shoulder on the nearest enemy he can see, so the enemy shows on screen.
+The `"foe"` shots (5:16, 6:50, 7:38, 8:16) use a long lens past his shoulder on the nearest enemy he can see, with no wall, tree or bush in the way, so the enemy shows on screen.
 Elsewhere the enemy is usually 80–260 m away and only a few pixels tall. When no enemy is in view, the shot falls back
 to over-the-shoulder.
 
