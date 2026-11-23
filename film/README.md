@@ -54,3 +54,9 @@ The distant gunfire and far artillery under the mix are ambience, not tied to an
 The 7:38 shot (`"foe"`) is a long lens past his shoulder on the nearest enemy he can see, so the enemy shows on screen.
 Elsewhere the enemy is usually 80–260 m away and only a few pixels tall. When no enemy is in view, the shot falls back
 to over-the-shoulder.
+
+He only engages an enemy he has a line of sight to (`near` in `director.js`). Before this he could fire at enemies
+hidden behind cover or terrain, from 1:52 on. The battle now diverges from v7 at 1:52.67, so everything after 1:48
+must be re-rendered. `render/queue.sh OUTDIR FPS "108 170" "170 238" ...` renders checkpointed segments on shot cuts
+and skips any that are already done. Follow shots now rise over a wall or shed behind him (3:06) instead of pressing
+against it.
