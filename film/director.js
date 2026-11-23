@@ -153,5 +153,5 @@
     if (fade > 0) { cx.fillStyle = `rgba(0,0,0,${fade})`; cx.fillRect(0, 0, Wd, Hd); }
     return comp.toDataURL("image/jpeg", q);
   };
-  FILM.probe = () => ""; FILM.setup = setup; FILM.shotDbg = () => sm && { i: sm.i, j: sm.j, pos: sm.pos.map(Math.round), at: sm.at.map(Math.round) }; FILM.dbg = () => ({ wi, waitT: +waitT.toFixed(1), n: ROUTE.length });
+  FILM.probe = () => ""; FILM.setup = setup; FILM.camAt = () => state === "playing" ? shotCam() : null; // the sound pass places sounds around this camera FILM.shotDbg = () => sm && { i: sm.i, j: sm.j, pos: sm.pos.map(Math.round), at: sm.at.map(Math.round) }; FILM.dbg = () => ({ wi, waitT: +waitT.toFixed(1), n: ROUTE.length });
 })();

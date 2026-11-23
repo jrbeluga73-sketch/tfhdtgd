@@ -31,3 +31,22 @@ made-up frames between real ones show them faint, doubled or missing legs. The s
 Close shots fall back to another framing when a building, wall, tree or bush is between the camera and the soldier
 (`steelfront.html` records bush positions in `BUSHES` for this). Props that are not in those lists, such as the plank
 stack by the ford road, are not checked.
+
+## Sound
+
+`render.js` captures pictures only, so the soundtrack is built separately in `sound/` and muxed onto the finished cut.
+Every effect is synthesised in `mix.py`; no recordings are used:
+
+1. `node sound/events.js ev6.jsonl --fps 6` (and `ev24.jsonl --fps 24`) re-runs the simulation without drawing. It logs
+   every rifle and MG shot, the hero's shots and footsteps, tank guns, explosions, artillery shells and bullet whizzes
+   with their time and position, plus the film camera (`FILM.camAt`) and nearby soldiers for each frame. Use the log
+   whose frame rate matches the footage: the 6 and 24 fps simulations play out differently.
+2. `python sound/tts.py` speaks the radio lines in `sound/lines.py` with Piper (voice `en_US-libritts_r-medium`,
+   trained on LibriTTS-R, CC BY 4.0).
+3. `WORK=dir MASTER=5.5 python sound/mix.py` places each sound by its distance and direction from the camera. It adds the
+   valley echo, squad footsteps, wind and distant gunfire, then mixes in the radio and limits peaks to -3.5 dBFS.
+   `NATIVE` lists the ranges that use the 24 fps log.
+4. `python sound/asr.py mix.wav` checks that the radio stays intelligible: speech recognition gives word recall per line.
+
+Then mux with `ffmpeg -i film.mp4 -i mix.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k film-sound.mp4`.
+The distant gunfire and far artillery under the mix are ambience, not tied to anything on screen.
