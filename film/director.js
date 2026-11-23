@@ -111,12 +111,15 @@
     let pos, at, fov = 0.75;
     // close shots try their framing, then fall back (mirrored side, then higher and wider) when a wall, tree or bush is in the way;
     // a shot never steps back to an earlier framing, so it cuts at most twice
-    const framing = (...c) => { const k = c.length, j0 = sm && sm.i === i ? sm.j : 0; let j = j0; if (blocked(c[j].pos, e)) { j = j0 + 1; while (j < k - 1 && blocked(c[j].pos, e)) j++; } pick = Math.min(j, k - 1); return c[pick]; };
+    // hug: a follow framing also fails when a wall runs within 2.5 m beside the camera (it fills half the frame)
+    const hug = q => buildings.some(bd => segAABB(vadd(q, [-fz * 2.5, 0, fx * 2.5]), vadd(q, [fz * 2.5, 0, -fx * 2.5]), bd.mn, bd.mx));
+    const bad = c => blocked(c.pos, e) || (c.hug && hug(c.pos));
+    const framing = (...c) => { const k = c.length, j0 = sm && sm.i === i ? sm.j : 0; let j = j0; if (bad(c[j])) { j = j0 + 1; while (j < k - 1 && bad(c[j])) j++; } pick = Math.min(j, k - 1); return c[pick]; };
     let pick = 0, foe = null;
     if (kind === "aerial") { const a = u * o.w + i; pos = [o.c[0] + Math.sin(a) * o.r, heightAt(o.c[0], o.c[1]) + o.h, o.c[1] + Math.cos(a) * o.r]; at = [o.c[0], heightAt(o.c[0], o.c[1]), o.c[1]]; fov = 0.9; }
     else if (kind === "crane") { pos = [o.c[0] + o.r, heightAt(o.c[0], o.c[1]) + o.h - u * 1.1, o.c[1] - o.r * 0.6]; at = e; fov = 0.7; }
-    else if (kind === "follow") ({ pos, at, fov } = framing({ pos: vadd(e, [-fx * 5.5, 1.4, -fz * 5.5]), at: vadd(e, [fx * 8, 0, fz * 8]), fov: 0.85 }, // a wall or shed behind him: rise over it
-      { pos: vadd(e, [-fx * 5, 3.6, -fz * 5]), at: vadd(e, [fx * 9, 0, fz * 9]), fov: 0.85 }, { pos: vadd(e, [-fx * 6.5, 6, -fz * 6.5]), at: vadd(e, [fx * 10, 0, fz * 10]), fov: 0.85 }));
+    else if (kind === "follow") ({ pos, at, fov } = framing({ pos: vadd(e, [-fx * 5.5, 1.4, -fz * 5.5]), at: vadd(e, [fx * 8, 0, fz * 8]), fov: 0.85, hug: true }, // a wall or shed behind him: rise over it
+      { pos: vadd(e, [-fx * 5, 3.6, -fz * 5]), at: vadd(e, [fx * 9, 0, fz * 9]), fov: 0.85, hug: true }, { pos: vadd(e, [-fx * 6.5, 6, -fz * 6.5]), at: vadd(e, [fx * 10, 0, fz * 10]), fov: 0.85 }));
     else if (kind === "side") ({ pos, at, fov } = framing({ pos: vadd(e, [fz * 6.5, 0.3, -fx * 6.5]), at: vadd(e, [fx * 2, 0, fz * 2]), fov: 0.7 },
       { pos: vadd(e, [-fz * 6.5, 0.3, fx * 6.5]), at: vadd(e, [fx * 2, 0, fz * 2]), fov: 0.7 }, { pos: vadd(e, [-fx * 7, 3.5, -fz * 7]), at: vadd(e, [fx * 6, 0, fz * 6]), fov: 0.85 }));
     else if (kind === "low") ({ pos, at, fov } = framing({ pos: vadd(p.pos, [fx * 7 + fz * 1.5, 0.45, fz * 7 - fx * 1.5]), at: e, fov: 0.8 },
