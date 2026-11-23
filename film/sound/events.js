@@ -5,7 +5,7 @@ const { chromium } = require('../render/node_modules/playwright-core'); const pa
 const A = process.argv.slice(2), out = A[0], opt = k => { const i = A.indexOf('--' + k); return i > 0 ? A[i + 1] : null; };
 const FPS = +(opt('fps') || 6), LEN = +(opt('len') || 600), DIR = path.resolve(__dirname, '..');
 (async () => {
-  const b = await chromium.launch({ executablePath: process.env.CHROME || '/usr/local/lib/ms-playwright/chromium-1208/chrome-linux64/chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  const b = await chromium.launch({ executablePath: process.env.CHROME || '/usr/local/lib/ms-playwright/chromium-1208/chrome-linux64/chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', ...(process.env.JS_FLAGS ? [`--js-flags=${process.env.JS_FLAGS}`] : [])] });
   const p = await b.newPage({ viewport: { width: 640, height: 268 } });
   await p.addInitScript({ path: path.join(DIR, 'render/vclock.js') });
   p.on('pageerror', e => console.log('PAGEERR', e.message));

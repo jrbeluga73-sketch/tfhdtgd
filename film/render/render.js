@@ -9,7 +9,7 @@ const CHROME = process.env.CHROME || '/usr/local/lib/ms-playwright/chromium-1208
   const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-',
     '-vf', `${INTERP ? `minterpolate=fps=${OFPS}:mi_mode=mci:mc_mode=obmc:me=epzs:scd=fdiff,` : ''}scale=${OW}:${IH}:flags=lanczos,pad=${OW}:${OH}:0:(oh-ih)/2:black,fps=${OFPS}`, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-pix_fmt', 'yuv420p',
     '-movflags', '+frag_keyframe+empty_moov+default_base_moof', out], { stdio: ['pipe', 'inherit', 'inherit'] });
-  const b = await chromium.launch({ executablePath: CHROME, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  const b = await chromium.launch({ executablePath: CHROME, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', ...(process.env.JS_FLAGS ? [`--js-flags=${process.env.JS_FLAGS}`] : [])] });
   const p = await b.newPage({ viewport: { width: W, height: H } });
   await p.addInitScript({ path: path.join(__dirname, 'vclock.js') });
   p.on('pageerror', e => console.log('PAGEERR', e.message)); p.on('console', m => { if (m.type() === 'error') console.log('ERR', m.text().slice(0, 300)); });

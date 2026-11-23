@@ -101,16 +101,21 @@ def place(bus, x, t, gain, pan, cut=None, send=None):
 
 def load(f, dt):
     rows = []
-    for l in open(f):
+    for l in (__import__('gzip').open(f, 'rt') if f.endswith('.gz') else open(f)):
         d = json.loads(l); d['dt'] = dt; rows.append(d)
     return rows
-R6, R24 = load(f'{WORK}/ev6.jsonl', 1 / 6), load(f'{WORK}/ev24.jsonl', 1 / 24)
-# OVERRIDE: ranges re-rendered with a newer camera than the base log's, and the log made with that camera
-OVERRIDE = [((170, 186), (202, 238), (304, 362)), 'ev6new.jsonl', 1 / 6], [((186, 202),), 'ev24new.jsonl', 1 / 24]
-rows = [r for r in R6 if not isnat(r['t'])] + [r for r in R24 if isnat(r['t'])]
-for rg, f, dt in OVERRIDE:
-    if not os.path.exists(f'{WORK}/{f}'): continue
-    inr = lambda t: any(a <= t < b for a, b in rg); rows = [r for r in rows if not inr(r['t'])] + [r for r in load(f'{WORK}/{f}', dt) if inr(r['t'])]
+# CUT: the cut's pieces as JSON [[start, end, video, video_start, events_log, fps], ...]. Each piece takes its sounds from
+# the events captured while that footage was rendered (render.js writes OUT.events.jsonl), or, for older footage, from
+# the dry-run log named there. Without CUT: the dry logs ev6.jsonl / ev24.jsonl as before.
+CUT = os.environ.get('CUT')
+if CUT:
+    rows = []
+    for a, b, _v, v0, f, fps in json.load(open(CUT)):
+        for r in load(f, 1 / fps):
+            if a <= r['t'] < b: rows.append(r)
+else:
+    R6, R24 = load(f'{WORK}/ev6.jsonl', 1 / 6), load(f'{WORK}/ev24.jsonl', 1 / 24)
+    rows = [r for r in R6 if not isnat(r['t'])] + [r for r in R24 if isnat(r['t'])]
 rows.sort(key=lambda r: r['t'])
 
 def rel(cam, q):
@@ -243,7 +248,7 @@ mix = FX * 0.62 * (1 - 0.6 * duck) + FOLEY * 0.9 * (1 - 0.3 * duck) + AMB * 1.0 
 fade = np.ones(N, np.float32); a = secs(3.0); fade[:a] = np.linspace(0, 1, a) ** 2; b = secs(6.0); fade[-b:] = np.linspace(1, 0, b) ** 1.5
 mix *= fade * float(__import__('os').environ.get('MASTER', '4.0'))
 # peak limiter: 5 ms look-ahead, 0.25 s release, ceiling -1.5 dBFS
-ceil = 10 ** (-3.5 / 20); pk = np.abs(mix).max(axis=0)
+ceil = 10 ** (-4.5 / 20); pk = np.abs(mix).max(axis=0)  # headroom: AAC encoding adds about 1.5 dB of inter-sample peak
 need = np.minimum(1.0, ceil / np.maximum(pk, 1e-9))
 la = secs(0.005)
 from scipy.ndimage import minimum_filter1d
