@@ -20,6 +20,11 @@
   const enemies = () => INF.filter(s => s.team === 1 && !s.dead && s.st !== "gone");
   function setup() {
     footHurt = () => {}; // the hero is spared; the battle around him is not
+    // the game's sound code draws from the battle's random stream (noiseHit), and its voice cap counts sounds the audio
+    // thread releases in real time (onended), so under load a dropped sound shifted every later random draw and the battle
+    // branched (first at the 4:03 barrage). The film has its own soundtrack: never drop a game sound, so the draws are
+    // the same in every run.
+    voice = () => true;
     footEnter("radio", true);
     const p = P(); const [x0, z0] = ROUTE[0]; p.pos = [x0, heightAt(x0, z0), z0]; p.inf.p = p.pos.slice(); cam.yaw = p.F.bodyYaw = -0.4; cam.pitch = -0.04;
     // his squad and the platoon on his flanks
