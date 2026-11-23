@@ -58,5 +58,5 @@ to over-the-shoulder.
 He only engages an enemy he has a line of sight to (`near` in `director.js`). Before this he could fire at enemies
 hidden behind cover or terrain, from 1:52 on. The battle now diverges from v7 at 1:52.67, so everything after 1:48
 must be re-rendered. `render/queue.sh OUTDIR FPS "108 170" "170 238" ...` renders checkpointed segments on shot cuts
-and skips any that are already done. Follow shots now rise over a wall or shed behind him (3:06) instead of pressing
-against it.
+and skips any that are already done. When a wall runs right beside a follow camera (the 3:06 shed), the camera steps
+out 3.5 m to the open side.

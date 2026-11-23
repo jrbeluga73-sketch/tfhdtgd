@@ -120,8 +120,9 @@
     let pick = 0, foe = null;
     if (kind === "aerial") { const a = u * o.w + i; pos = [o.c[0] + Math.sin(a) * o.r, heightAt(o.c[0], o.c[1]) + o.h, o.c[1] + Math.cos(a) * o.r]; at = [o.c[0], heightAt(o.c[0], o.c[1]), o.c[1]]; fov = 0.9; }
     else if (kind === "crane") { pos = [o.c[0] + o.r, heightAt(o.c[0], o.c[1]) + o.h - u * 1.1, o.c[1] - o.r * 0.6]; at = e; fov = 0.7; }
-    else if (kind === "follow") ({ pos, at, fov } = framing({ pos: vadd(e, [-fx * 5.5, 1.4, -fz * 5.5]), at: vadd(e, [fx * 8, 0, fz * 8]), fov: 0.85, hug: true }, // a wall or shed behind him: rise over it
-      { pos: vadd(e, [-fx * 5, 3.6, -fz * 5]), at: vadd(e, [fx * 9, 0, fz * 9]), fov: 0.85, hug: true }, { pos: vadd(e, [-fx * 6.5, 6, -fz * 6.5]), at: vadd(e, [fx * 10, 0, fz * 10]), fov: 0.85 }));
+    else if (kind === "follow") ({ pos, at, fov } = framing({ pos: vadd(e, [-fx * 5.5, 1.4, -fz * 5.5]), at: vadd(e, [fx * 8, 0, fz * 8]), fov: 0.85, hug: true }, // a wall beside him: step out to the open side
+      { pos: vadd(e, [-fx * 5 + fz * 3.5, 1.4, -fz * 5 - fx * 3.5]), at: vadd(e, [fx * 8, 0, fz * 8]), fov: 0.85, hug: true },
+      { pos: vadd(e, [-fx * 5 - fz * 3.5, 1.4, -fz * 5 + fx * 3.5]), at: vadd(e, [fx * 8, 0, fz * 8]), fov: 0.85, hug: true }, { pos: vadd(e, [-fx * 6.5, 6, -fz * 6.5]), at: vadd(e, [fx * 10, 0, fz * 10]), fov: 0.85 }));
     else if (kind === "side") ({ pos, at, fov } = framing({ pos: vadd(e, [fz * 6.5, 0.3, -fx * 6.5]), at: vadd(e, [fx * 2, 0, fz * 2]), fov: 0.7 },
       { pos: vadd(e, [-fz * 6.5, 0.3, fx * 6.5]), at: vadd(e, [fx * 2, 0, fz * 2]), fov: 0.7 }, { pos: vadd(e, [-fx * 7, 3.5, -fz * 7]), at: vadd(e, [fx * 6, 0, fz * 6]), fov: 0.85 }));
     else if (kind === "low") ({ pos, at, fov } = framing({ pos: vadd(p.pos, [fx * 7 + fz * 1.5, 0.45, fz * 7 - fx * 1.5]), at: e, fov: 0.8 },
