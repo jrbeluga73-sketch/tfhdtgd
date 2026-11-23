@@ -66,6 +66,8 @@ out 3.5 m to the open side.
 `render.js` captures the sound events (and the camera it drew) during the render itself, in `OUT.events.jsonl`. It also
 writes the battle it simulated without drawing before `--from` to `OUT.skip.jsonl`. With one browser running, the battle
 replays exactly: a segment's lead-in matches the earlier segments' captured footage frame for frame. With a second
-browser busy at the same time, it can branch (first seen at 4:03.5). So render one browser at a time, and compare each
+browser busy at the same time, it can branch (first seen at 4:03.5). Even alone a run can branch: a segment drawn
+from 3:58 branched at 4:03.5 twice, and one 9:04 segment branched at 4:06 during its lead-in. The cause is not yet
+found, so check every join. So render one browser at a time, and compare each
 segment's `.skip.jsonl` with the earlier segments' `.events.jsonl` before splicing them. `mix.py` takes the cut as
 `CUT=cut.json`, and each piece's sounds come from its own log. Captured logs are kept in `sound/captured/`.
