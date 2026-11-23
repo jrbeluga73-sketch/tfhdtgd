@@ -152,7 +152,7 @@
   const step0 = step, render0 = render;
   step = function (h) { if (state === "playing") { drive(h); squad(); } step0(h); };
   render = function () {
-    const c = state === "playing" ? shotCam() : null;
+    const c = state === "playing" ? shotCam() : null; FILM.lastCam = c; // the sound pass places sounds around the camera actually drawn
     if (!c) return render0();
     const save = [cam.pos, cam.dir, cam.fov]; cam.pos = c.pos.slice(); cam.dir = vnorm(vsub(c.at, c.pos)); cam.fov = c.fov;
     try { render0(); } finally { [cam.pos, cam.dir, cam.fov] = save; }
