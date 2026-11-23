@@ -100,3 +100,10 @@ and 4:25.5–4:37.8 (feet below the frame); with the new aim, none. 1:20–1:38,
 this way (`sound/captured/fixed/cut15.json`, logs `*.sub24.*`); each matches the 6 fps battle on every simulated frame
 (`subjoin.py`) and in its lead-in (`join.py`), so all of 0:00–10:00 is one battle. `render/onscreen.py OUT.events.jsonl FOV`
 measures where he sat in the frames actually drawn. The rest of the film is still 6 fps frames shown four times.
+
+**v16.** 8:16–8:32 (the second foe shot) is re-rendered with `--sub 4` (`cut16.json`, logs `s496-512.sub24.*`), so 24
+drawn frames a second now cover 1:20–1:38, 4:22–4:38, 7:38–7:54 and 8:16–8:32 (66 s). The hero in the shed's shadow
+(3:07–3:13) is lifted a little with a local exposure grade in `assemble.py` (`GRADE=186.5,193.5,1.45`: gamma up to 1.45, ramped
+over 1 s at each end); the footage and battle are unchanged, but he is still dark against the wall. At 8:20 the 8:16 foe shot has no enemy in view and shows its over-the-shoulder framing. Not fixed: at 7:51 the 7:38 foe shot cuts to a second enemy
+about 186 m away who does not read on screen, so it ends on the farmhouse; outside the foe shots enemies are still a few
+pixels tall.
