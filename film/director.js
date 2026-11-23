@@ -10,7 +10,10 @@
   const ROUTE = [
     [-120, -440, 0], [-150, -380, 0], [-185, -310, 14, "fight"], [-200, -255, 0], [-210, -215, 20, "fight"], [-195, -170, 10, "fight"],
     [-175, -120, 0], [-160, -80, 0], [-150, -58, 34, "radio"], [-95, -40, 0], [-20, -20, 0], [HB.ford - 10, bkZ(HB.ford) - 24, 8, "fight"],
-    [HB.ford, bkZ(HB.ford) + 4, 0], [HB.ford + 10, bkZ(HB.ford) + 40, 14, "fight"], [90, 120, 12, "fight"], [HB.B[0], HB.B[1], 999, "end"],
+    [HB.ford, bkZ(HB.ford) + 4, 0], [HB.ford + 10, bkZ(HB.ford) + 40, 14, "fight"], [90, 120, 12, "fight"],
+    // act three: through the church village, then up the lane to the enemy's guns on the north ridge
+    [HB.B[0] - 14, HB.B[1] - 6, 24, "fight"], [HB.B[0] + 6, HB.B[1] + 18, 28, "fight"], [HB.B[0] + 34, HB.B[1] + 58, 0], [150, 250, 22, "fight"],
+    [195, 315, 24, "fight"], [228, 365, 26, "fight"], [HB.C[0], HB.C[1], 999, "end"],
   ];
   let wi = 1, waitT = 0, holdUntil = 72, radioDone = false;
   const P = () => player;
@@ -26,6 +29,8 @@
     const post = (x, z, o = {}) => infMake(1, x, z, "post", { post: [x, z], sbo: "dig", sbp: [x, z], sbk: 0, ...o });
     for (let i = 0; i < 9; i++) { const a = i / 9 * 6.28, x = HB.A[0] + Math.sin(a) * 30, z = HB.A[1] + 25 + Math.cos(a) * 18; post(x, z, { mg: i === 2 }); }
     for (let i = 0; i < 16; i++) { const a = i / 16 * 6.28, x = HB.B[0] + Math.sin(a) * 45, z = HB.B[1] + Math.cos(a) * 40; post(x, z, { mg: i % 5 === 1, at: i % 7 === 3 }); }
+    for (let i = 0; i < 12; i++) { const a = i / 12 * 6.28, x = HB.C[0] + Math.sin(a) * 34, z = HB.C[1] + Math.cos(a) * 30; post(x, z, { mg: i % 4 === 1, at: i === 6 }); } // the gun farm
+    for (const [dx, dz] of [[-40, 60], [10, 85], [-10, 120]]) post(HB.C[0] + dx - 60, HB.C[1] + dz - 140, { mg: dz === 85 }); // outposts on the lane
     for (const dx of [-30, 0, 30]) post(HB.ford + dx, bkZ(HB.ford) + 55, { mg: dx === 0 });
     for (const [dx, dz] of [[-28, 10], [26, 4], [0, -22]]) addCover({ x: HB.A[0] + dx, z: HB.A[1] + 40 + dz, hx: 4, hz: 0.7, kind: "sandbag", tag: "sb" });
     for (const dx of [-20, 20]) addCover({ x: HB.ford + dx, z: bkZ(HB.ford) + 52, hx: 4.5, hz: 0.7, kind: "sandbag", tag: "sb" });
@@ -34,6 +39,11 @@
     FILM.foe = [steelFront.veh.spawn("heavy", HB.B[0] + 30, HB.B[1] + 30, 1, Math.PI), steelFront.veh.spawn("medium", HB.B[0] - 40, HB.B[1] + 20, 1, Math.PI)].filter(Boolean);
     for (const t of FILM.foe) if (t.sb) t.sb.ord = "hold";
     for (const t of FILM.ally) if (t.sb) t.sb.ord = "hold";
+  }
+  // the ridge is reinforced as he leaves the village: riflemen dig in at the gun farm and a tank comes up the lane
+  function reinforce() {
+    for (let i = 0; i < 8; i++) { const x = HB.C[0] - 30 + (i % 4) * 20, z = HB.C[1] - 20 - (i > 3 ? 14 : 0); infMake(1, x, z, "post", { post: [x, z], sbo: "dig", sbp: [x, z], sbk: 0, mg: i === 5 }); }
+    const t = steelFront.veh.spawn("medium", HB.C[0] + 20, HB.C[1] + 30, 1, Math.PI * 1.15); if (t && t.sb) t.sb.ord = "hold";
   }
   // ---- the soldier's input: walk the route, stop to fight, call the barrage from the hill
   const near = (q, r) => { let b = null, bd = r; for (const s of enemies()) { const d = Math.hypot(s.p[0] - q[0], s.p[2] - q[2]); if (d < bd) { bd = d; b = s; } } return b; };
@@ -56,7 +66,7 @@
       cam.pitch = approach(cam.pitch, Math.atan2(heightAt(tg[0], tg[1]) - p.pos[1] - 1.2, Math.hypot(ex, ez)), dt);
       if (!radioDone && waitT < w[2] - 8) { radioDone = true; strikes.push({ p: [tg[0] + 10, 0, tg[1] + 20], t: 4, n: 10, k: 0, owner: footArty(0) }); strikes.push({ p: [tg[0] - 30, 0, tg[1] + 10], t: 9, n: 8, k: 0, owner: footArty(0) }); }
       if (waitT < 6) for (const t of FILM.ally) if (t.sb) t.sb.ord = "hunt"; }
-    if (waitT <= 0 && wi < ROUTE.length - 1) { wi++; waitT = 0; cam.sniper = false; }
+    if (waitT <= 0 && wi < ROUTE.length - 1) { wi++; waitT = 0; cam.sniper = false; if (wi === 18) reinforce(); }
     if (w[3] === "end") { cam.sniper = false; f.crouch = false; }
   }
   // the squad moves up behind him in legs (their sandbox "hold" spot follows the route)
@@ -67,15 +77,21 @@
       s.sbp = FILM.t < holdUntil ? s.sbp : [p.pos[0] - fx * back + fz * a * 14, p.pos[2] - fz * back - fx * a * 14]; s.sbk = k; s.stg = -1; }
   }
   // ---- the film camera: a shot list cut on time; every shot is smoothed, each cut starts clean
+  // cut against the measured timeline: start line to 1:20, hamlet fights 1:50-2:45, the hill and the barrage 3:42-4:16,
+  // the ford 5:00-5:40, the church village 6:15-7:10, the lane and the ridge 7:25-9:15, the gun farm taken at 9:24
   const SHOTS = [
     [0, "aerial", { c: [-60, -150], r: 520, h: 210, w: 0.012 }], [22, "crane", { c: [-130, -440], h: 28, r: 60 }], [40, "close", {}], [52, "side", {}],
-    [72, "follow", {}], [95, "low", {}], [118, "side", {}], [138, "wide", { at: [-260, -330] }], [160, "follow", {}], [185, "ots", {}], [210, "close", {}],
-    [228, "aerial", { c: [-200, -210], r: 160, h: 70, w: 0.05 }], [248, "follow", {}], [270, "low", {}], [290, "wide", { at: [-60, -160] }], [308, "ots", {}],
-    [328, "close", {}], [345, "vista", {}], [372, "ots", {}], [388, "vista", {}], [405, "follow", {}], [430, "side", {}], [452, "low", {}], [470, "ots", {}],
-    [492, "follow", {}], [515, "side", {}], [535, "aerial", { c: [HB.B[0], HB.B[1]], r: 220, h: 90, w: 0.03 }], [555, "follow", {}], [572, "close", {}], [586, "aerial", { c: [HB.B[0], HB.B[1]], r: 300, h: 140, w: -0.02 }],
+    [80, "follow", {}], [98, "low", {}], [108, "side", {}], [120, "wide", { at: [-260, -330] }], [134, "follow", {}], [146, "ots", {}], [160, "close", {}],
+    [170, "aerial", { c: [-200, -210], r: 160, h: 70, w: 0.05 }], [186, "follow", {}], [202, "low", {}], [216, "side", {}], [226, "vista", {}],
+    [238, "aerial", { c: [HB.B[0], HB.B[1]], r: 230, h: 95, w: 0.03 }], [252, "close", {}], [262, "follow", {}], [278, "side", {}], [292, "follow", {}],
+    [304, "low", {}], [316, "ots", {}], [332, "side", {}], [346, "follow", {}], [362, "low", {}], [374, "ots", {}], [390, "close", {}], [400, "side", {}],
+    [410, "ots", {}], [424, "aerial", { c: [HB.B[0], HB.B[1]], r: 150, h: 60, w: -0.04 }], [436, "follow", {}], [450, "low", {}], [458, "ots", {}],
+    [474, "side", {}], [486, "follow", {}], [496, "ots", {}], [512, "close", {}], [520, "follow", {}], [530, "ots", {}], [544, "side", {}],
+    [554, "follow", {}], [564, "low", {}], [574, "aerial", { c: [HB.C[0], HB.C[1]], r: 110, h: 45, w: 0.04 }], [588, "aerial", { c: [HB.C[0], HB.C[1]], r: 300, h: 140, w: -0.02 }],
   ];
-  const TITLES = [[3, 12, "HARROW BROOK", "Autumn, 1944 · first light"], [24, 33, "Private Tom Ashby", "Radio operator, 2nd Platoon"], [74, 81, "The orchard hamlet", "0.4 km"],
-    [330, 338, "Observation Hill", "Call the guns on the church village"], [430, 437, "The ford", ""], [592, 600, "HARROW BROOK", "Rendered in the Steel Front engine"]];
+  const TITLES = [[3, 12, "HARROW BROOK", "Autumn, 1944 · first light"], [24, 33, "Private Tom Ashby", "Radio operator, 2nd Platoon"], [126, 133, "The orchard hamlet", ""],
+    [228, 236, "Observation Hill", "Call the guns on the church village"], [306, 313, "The ford", ""], [378, 385, "The church village", ""],
+    [478, 486, "The north ridge", "The enemy's guns"], [578, 586, "The gun farm", "Taken by 2nd Platoon"], [592, 600, "HARROW BROOK", "Rendered in the Steel Front engine"]];
   let sm = null;
   function shotCam() {
     const t = FILM.t; let i = 0; while (i + 1 < SHOTS.length && SHOTS[i + 1][0] <= t) i++;
@@ -117,5 +133,5 @@
     if (fade > 0) { cx.fillStyle = `rgba(0,0,0,${fade})`; cx.fillRect(0, 0, Wd, Hd); }
     return comp.toDataURL("image/jpeg", q);
   };
-  FILM.setup = setup;
+  FILM.setup = setup; FILM.dbg = () => ({ wi, waitT: +waitT.toFixed(1), n: ROUTE.length });
 })();

@@ -2,7 +2,8 @@
 
 A 10-minute cinematic rendered in the Steel Front engine (`steelfront.html`, pass 46). One radio operator leads his
 squad from the southern woods, through an orchard hamlet and up Observation Hill. From the hill he calls a barrage on
-the church village, then crosses the ford into the village.
+the church village, crosses the ford, and fights through the village and up the lane to take the enemy's gun farm on
+the north ridge.
 
 - `steelfront.html`: the game, plus a new map, **Harrow Brook** (`MAPS.brook`). It is an autumn brook valley at first
   light, with a hamlet, a hill, a church and windmill village at the ford, and the enemy-held north ridge. It is
@@ -14,5 +15,9 @@ the church village, then crosses the ford into the village.
 
 ```
 cd render && npm i && node render.js harrow-brook.mp4                      # default: fast settings (low gfx, 640x268, 6 fps)
+node render.js x.mp4 --dry                                                 # simulate only (~40 s) and log the soldier's progress
+node render.js hb.mp4 --w 1024 --h 430 --fps 6 --interp                    # the shared cut: 6 fps capture, motion-interpolated to 24
 node render.js hq.mp4 --gfx medium --w 1600 --h 670 --fps 24 --out-w 1920  # full quality: needs a GPU or many hours
 ```
+
+If you change the route or pauses in `director.js`, re-time `SHOTS` and `TITLES` against a `--dry` log.
