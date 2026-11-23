@@ -5,7 +5,7 @@ import json, math, sys, numpy as np, scipy.signal as ss, scipy.io.wavfile as wf
 import os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); WORK = os.environ.get('WORK', '/tmp/a'); from lines import LINES
 SR = 48000; LEN = 600.0; N = int(SR * LEN)
 rng = np.random.default_rng(1944)
-NATIVE = [(80, 98), (186, 202), (436, 450), (520, 530)]  # ranges of the cut rendered at 24 fps (their sounds come from the 24 fps log)
+NATIVE = [(80, 98), (186, 202)]  # ranges of the cut rendered at 24 fps (their sounds come from the 24 fps log)
 isnat = lambda t: any(a <= t < b for a, b in NATIVE)
 
 # ---------------------------------------------------------------- helpers
@@ -106,7 +106,7 @@ def load(f, dt):
     return rows
 R6, R24 = load(f'{WORK}/ev6.jsonl', 1 / 6), load(f'{WORK}/ev24.jsonl', 1 / 24)
 # OVERRIDE: ranges re-rendered with a newer camera than the base log's, and the log made with that camera
-OVERRIDE = [((170, 186), (202, 238), (304, 362)), 'ev6new.jsonl', 1 / 6], [((186, 202), (436, 450)), 'ev24new.jsonl', 1 / 24]
+OVERRIDE = [((170, 186), (202, 238), (304, 362)), 'ev6new.jsonl', 1 / 6], [((186, 202),), 'ev24new.jsonl', 1 / 24]
 rows = [r for r in R6 if not isnat(r['t'])] + [r for r in R24 if isnat(r['t'])]
 for rg, f, dt in OVERRIDE:
     if not os.path.exists(f'{WORK}/{f}'): continue
