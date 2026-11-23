@@ -5,7 +5,7 @@ import json, math, sys, numpy as np, scipy.signal as ss, scipy.io.wavfile as wf
 import os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); WORK = os.environ.get('WORK', '/tmp/a'); from lines import LINES
 SR = 48000; LEN = 600.0; N = int(SR * LEN)
 rng = np.random.default_rng(1944)
-NATIVE = [(80, 146), (186, 202), (332, 362), (436, 450)]  # v5 ranges taken from the 24 fps simulation
+NATIVE = [(80, 108)]  # ranges of the cut rendered at 24 fps (their sounds come from the 24 fps log)
 isnat = lambda t: any(a <= t < b for a, b in NATIVE)
 
 # ---------------------------------------------------------------- helpers
