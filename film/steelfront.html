@@ -7299,7 +7299,7 @@ function farUpdate() {
   }
   farStat.ms = performance.now() - t0;
 }
-const buildings = [], trees = [], BUSHES = []; // BUSHES: [x, z, scale], read by the film camera
+const buildings = [], trees = [], BUSHES = [], FENCES = []; // BUSHES: [x, z, scale]; FENCES: garden fence spans [x0, y0, z0, x1, y1, z1] (rails to 1.2 m); read by the film camera
 const minimapBg = document.createElement("canvas");
 function generateWorld() {
   flats = []; SNX = createNoise2D(seedRng((seed ^ 0x9e3779b9) >>> 0));
@@ -7420,7 +7420,7 @@ function generateWorld() {
   cloudMesh = finish(cb);
 
   // buildings
-  buildings.length = 0; trees.length = 0; BUSHES.length = 0;
+  buildings.length = 0; trees.length = 0; BUSHES.length = 0; FENCES.length = 0;
   const pb = builder(), rb0 = builder(); PAVED.length = 0; // rb0: authored paving, appended to the road mesh
   const vb = builder(); // vegetation and other visual-only scenery (no collision, no line-of-sight blocking)
   const zoneNear = (x, z, r) => ZONE_POS.some(zp => Math.hypot(zp[0] - x, zp[2] - z) < r);
@@ -7495,7 +7495,7 @@ function generateWorld() {
             const pA = tp(L(0, 0, 0), [lerp(ax, bx, i / n), 0, lerp(az, bz, i / n)]), pB = tp(L(0, 0, 0), [lerp(ax, bx, (i + 1) / n), 0, lerp(az, bz, (i + 1) / n)]);
             if (roadDist(pA[0], pA[2]) < 4.5 || roadDist(pB[0], pB[2]) < 4.5 || Math.random() < 0.08) continue;
             const yA = heightAt(pA[0], pA[2]), yB = heightAt(pB[0], pB[2]);
-            addBox(vb, chain(trans(pA[0], yA + 0.55, pA[2]), scl(0.12, 1.2, 0.12)), [0.4, 0.32, 0.22]);
+            addBox(vb, chain(trans(pA[0], yA + 0.55, pA[2]), scl(0.12, 1.2, 0.12)), [0.4, 0.32, 0.22]); FENCES.push([pA[0], yA, pA[2], pB[0], yB, pB[2]]); // the film camera avoids them
             for (const ry of [0.45, 0.9]) addBeam(vb, [pA[0], yA + ry, pA[2]], [pB[0], yB + ry, pB[2]], 0.06, [0.46, 0.37, 0.26], 0.12);
           }
         }
@@ -17466,7 +17466,7 @@ function loadMap(key) {
     MAP_CACHE.delete(D.key); MAP_CACHE.set(D.key, S); // most recently used last
     HM.set(S.HM); OH.set(S.OH); NH = S.NH || null; TERRAIN_MAX = S.TERRAIN_MAX; flats = S.flats; craters = S.craters; SNX = S.SNX;
     terrainMesh = S.terrainMesh; propsMesh = S.propsMesh; outerMesh = S.outerMesh; cloudMesh = S.cloudMesh; roadMesh = S.roadMesh; vegMesh = S.vegMesh; waterMesh = S.waterMesh;
-    buildings.length = 0; buildings.push(...S.buildings); trees.length = 0; trees.push(...S.trees); BUSHES.length = 0; BUSHES.push(...(S.BUSHES || [])); PAVED.length = 0; PAVED.push(...S.PAVED); AUTH = S.AUTH;
+    buildings.length = 0; buildings.push(...S.buildings); trees.length = 0; trees.push(...S.trees); BUSHES.length = 0; BUSHES.push(...(S.BUSHES || [])); FENCES.length = 0; FENCES.push(...(S.FENCES || [])); PAVED.length = 0; PAVED.push(...S.PAVED); AUTH = S.AUTH;
     minimapBg.getContext("2d").drawImage(S.mini, 0, 0);
     S.zy.forEach((y, i) => { ZONE_POS[i][1] = y; }); S.by.forEach((y, i) => { BASES[i][1] = y; });
     Object.assign(NAV, S.NAV); OPL = S.OPL; DDL = S.DDL; MAPL = S.MAPL; SKL = S.SKL;
@@ -17479,7 +17479,7 @@ function loadMap(key) {
     if (D.key === "normandy") ddLayout(); // D-Day: beach obstacles, seawall, bunkers, landing lanes
     if (D.covers) MAPL = mapCovers(D.covers);
     const mini = document.createElement("canvas"); mini.width = minimapBg.width; mini.height = minimapBg.height; mini.getContext("2d").drawImage(minimapBg, 0, 0);
-    S = { HM: HM.slice(), OH: OH.slice(), NH, TERRAIN_MAX, flats, craters, SNX, buildings: buildings.slice(), trees: trees.slice(), BUSHES: BUSHES.slice(), PAVED: PAVED.slice(), AUTH, mini,
+    S = { HM: HM.slice(), OH: OH.slice(), NH, TERRAIN_MAX, flats, craters, SNX, buildings: buildings.slice(), trees: trees.slice(), BUSHES: BUSHES.slice(), FENCES: FENCES.slice(), PAVED: PAVED.slice(), AUTH, mini,
       zy: ZONE_POS.map(z => z[1]), by: BASES.map(b => b[1]), OPL, DDL, MAPL, SKL,
       NAV: { n: NAV.n, base: NAV.base, cov: NAV.cov, g: NAV.g, par: NAV.par, seen: NAV.seen, done: NAV.done, hi: NAV.hi, hk: NAV.hk } }; // not the search stamp: it must keep counting up (the scratch arrays remember old stamps)
     for (const k of MESH_KEYS) S[k] = { terrainMesh, propsMesh, outerMesh, cloudMesh, roadMesh, vegMesh, waterMesh }[k];

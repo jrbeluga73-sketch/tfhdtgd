@@ -133,3 +133,21 @@ At 8:19 the first render took the reverse angle from side −1, which put the ho
 in front of him. The shot now uses side 1 (open ground behind him). A fence rail at his post still crosses his legs.
 24 drawn frames a second now cover 1:20–1:38, 4:22–4:38, 6:50–7:04, 7:38–7:54 and 8:16–8:32 (80 s). v17 is mixed with
 `MASTER=4.3` (−21.0 LUFS, peak −2.8 dBFS true peak) and assembled with `CRF=24` to stay under 50 MB.
+
+**v18.** Camera and light only; the battle is unchanged.
+
+- **Fences:** `steelfront.html` records its garden fence spans in `FENCES` (rails to 1.2 m), and reverse angles count
+  a fence between the lens and the enemy's head or knees as blocked. A reverse angle tries its own side, the other side,
+  then each side raised 1.6 m, and only moves on down that list. At 8:19 every angle on the enemy at (285, 385) is fenced,
+  so the shot now takes the enemy at (284.4, 420) instead, who is alive at his post through 8:16–8:32 with every angle
+  clear (he does not see the hero and does not fire).
+- **6:50–7:04:** the reverse angle arcs slowly round the watching enemy (0.045 rad/s, with a 0.6 m push-in). He still
+  does not fire, because in the battle he does not.
+- **3:06.5–3:13.5, the shed:** a closer follow framing from the open side (`tight`) and a fill light (`FILL`: the
+  shader's ambient term raised by up to 1.5, ramped over 1 s). The game resets its light in `applyAtmo` inside every
+  drawing, so the fill is applied there; v17's attempt to set it around the drawing had no effect. If a wall hides him,
+  the shot hands back to the normal follow framing and stays there. The `assemble.py` gamma lift is dropped for this footage.
+
+v18 status (not assembled yet): 1:38–1:48, 2:14–2:26, 2:26–2:40 and 3:06–3:22 are rendered with `--sub 4` and verified
+(`cut18.json`, logs `*.sub24.*`). The 6:50 arc is wrong: it swings the enemy out of frame from about 6:58, so the arc rate
+must be reduced before that shot is used. 8:16–8:32 was still rendering when work stopped.

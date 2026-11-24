@@ -88,11 +88,11 @@
   const SHOTS = [
     [0, "aerial", { c: [-60, -150], r: 520, h: 210, w: 0.012 }], [22, "crane", { c: [-130, -440], h: 28, r: 60 }], [40, "close", {}], [52, "side", {}],
     [80, "follow", {}], [98, "low", {}], [108, "side", {}], [120, "wide", { at: [-260, -330] }], [134, "follow", {}], [146, "ots", {}], [160, "close", {}],
-    [170, "aerial", { c: [-200, -210], r: 160, h: 70, w: 0.05 }], [186, "follow", {}], [202, "low", {}], [216, "side", {}], [226, "vista", {}],
+    [170, "aerial", { c: [-200, -210], r: 160, h: 70, w: 0.05 }], [186, "follow", { tight: [186.5, 193.5] }], [202, "low", {}], [216, "side", {}], [226, "vista", {}],
     [238, "aerial", { c: [HB.B[0], HB.B[1]], r: 230, h: 95, w: 0.03 }], [252, "close", {}], [262, "follow", {}], [278, "side", {}], [292, "follow", {}],
     [304, "low", {}], [316, "ots", {}], [332, "side", {}], [344.5, "follow", {}], [362, "low", {}], [374, "ots", {}], [390, "close", {}], [400, "side", {}],
-    [410, "rev", { seq: [[0, [221, 404.9], 1]] }], [424, "aerial", { c: [HB.B[0], HB.B[1]], r: 150, h: 60, w: -0.04 }], [436, "follow", {}], [450, "low", {}], [458, "rev", { seq: [[0, [284.5, 390], 1], [8, [225.5, 419.9], -1]] }],
-    [474, "side", {}], [486, "follow", {}], [496, "rev", { seq: [[0, [289, 405], 1], [3, [285, 385], 1]] }], [512, "close", {}], [520, "follow", {}], [530, "ots", {}], [544, "side", {}],
+    [410, "rev", { seq: [[0, [221, 404.9], 1, 0.045]] }], [424, "aerial", { c: [HB.B[0], HB.B[1]], r: 150, h: 60, w: -0.04 }], [436, "follow", {}], [450, "low", {}], [458, "rev", { seq: [[0, [284.5, 390], 1], [8, [225.5, 419.9], -1]] }],
+    [474, "side", {}], [486, "follow", {}], [496, "rev", { seq: [[0, [289, 405], 1], [3, [284.4, 420], 1, 0.03]] }], [512, "close", {}], [520, "follow", {}], [530, "ots", {}], [544, "side", {}],
     [554, "follow", {}], [564, "low", {}], [574, "aerial", { c: [HB.C[0], HB.C[1]], r: 110, h: 45, w: 0.04 }], [588, "aerial", { c: [HB.C[0], HB.C[1]], r: 300, h: 140, w: -0.02 }],
   ];
   const TITLES = [[3, 12, "HARROW BROOK", "Autumn, 1944 · first light"], [24, 33, "Private Tom Ashby", "Radio operator, 2nd Platoon"], [126, 133, "The orchard hamlet", ""],
@@ -112,14 +112,29 @@
       if (d < bd && (dx * fx + dz * fz) / d > 0.3 && infLos(s.p, P().pos) && clearTo(e, [s.p[0], s.p[1] + 1.1, s.p[2]])) { bd = d; b = s; } }
     foeT = b; return b; };
   let foeShot = -1;
+  // a closer follow from the open side, for a stretch where he walks in a wall's shadow (o.tight: [from, to]); once a wall
+  // hides him (he rounds a corner) the shot hands back to the normal follow framing for good
+  const tightCam = (e, fx, fz) => { const sd = buildings.some(bd => segAABB(e, vadd(e, [fz * 2.4, 0, -fx * 2.4]), bd.mn, bd.mx)) ? -1 : 1;
+    return { pos: vadd(e, [-fx * 3.2 + fz * sd * 1.5, 0.5, -fz * 3.2 - fx * sd * 1.5]), at: vadd(e, [fx * 6, -0.2, fz * 6]), fov: 0.72 }; };
   // the reverse angle: behind a dug-in enemy's shoulder at his post, looking down his line of fire towards the hero. A post
   // faces south, so from the hero's side the sandbags hide all but his helmet; from behind he reads whole, kneeling and firing.
-  const revCam = (s, e, side = 1) => { const q = vadd(s.p, [0, 1.0, 0]), d = vsub(e, q), z = Math.hypot(d[0], d[2]), ux = d[0] / z, uz = d[2] / z;
-    return { pos: vadd(q, [-ux * 3.8 + uz * side * 1.8, 0.5, -uz * 3.8 - ux * side * 1.8]), at: vadd(q, [ux * 14, -0.3, uz * 14]), fov: 0.62, q }; }; // he sits a third in from the side, helmet to knees in frame
+  // k: 0 low behind his shoulder; 1 the same, raised over a fence or rail in the way. dr: a slow arc round him (rad/s, with a
+  // gentle push-in) so a long shot of a man who is only watching still moves
+  const revCam = (s, e, side = 1, k = 0, u = 0, dr = 0) => { const q = vadd(s.p, [0, 1.0, 0]), d = vsub(e, q), z = Math.hypot(d[0], d[2]), a = side * dr * u,
+      ca = Math.cos(a), sa = Math.sin(a), ux = (d[0] * ca - d[2] * sa) / z, uz = (d[0] * sa + d[2] * ca) / z, b = 3.8 - Math.min(0.6, dr * 1.2 * u), h = k ? 2.1 : 0.5;
+    return { pos: vadd(q, [-ux * b + uz * side * 1.8, h, -uz * b - ux * side * 1.8]), at: vadd(q, [d[0] / z * 14, k ? -1.0 : -0.3, d[2] / z * 14]), fov: 0.62, q }; }; // he sits a third in from the side, helmet to knees in frame
+  // a fence span (rails to 1.2 m) crossing the line a -> b
+  const fenced = (a, b) => FENCES.some(([x0, y0, z0, x1, y1, z1]) => { if (Math.min(a[0], b[0]) > Math.max(x0, x1) + 1 || Math.max(a[0], b[0]) < Math.min(x0, x1) - 1 || Math.min(a[2], b[2]) > Math.max(z0, z1) + 1 || Math.max(a[2], b[2]) < Math.min(z0, z1) - 1) return false;
+    for (let i = 1; i < 40; i++) { const p = vlerp(a, b, i / 40), ex = x1 - x0, ez = z1 - z0, w = clamp(((p[0] - x0) * ex + (p[2] - z0) * ez) / (ex * ex + ez * ez || 1), 0, 1);
+      if (Math.hypot(p[0] - x0 - ex * w, p[2] - z0 - ez * w) < 0.15 && p[1] < lerp(y0, y1, w) + 1.25) return true; } return false; });
   const ground = (a, b) => { for (let i = 1; i < 8; i++) { const q = vlerp(a, b, i / 8); if (q[1] < heightAt(q[0], q[2]) + 0.1) return false; } return true; }; // no rise of ground between
   const atPost = q => enemies().find(s => s.post && Math.hypot(s.post[0] - q[0], s.post[1] - q[1]) < 0.2);
-  const revOk = (s, e, side) => { if (!s || s.dead || s.st === "gone") return false; const c = revCam(s, e, side);
-    return !blocked(c.pos, c.q) && ground(c.pos, c.q) && !buildings.some(bd => c.pos[0] > bd.mn[0] - 0.5 && c.pos[0] < bd.mx[0] + 0.5 && c.pos[2] > bd.mn[2] - 0.5 && c.pos[2] < bd.mx[2] + 0.5); };
+  const revOk = (s, e, side, k = 0, u = 0, dr = 0) => { if (!s || s.dead || s.st === "gone") return false; const c = revCam(s, e, side, k, u, dr), kn = vadd(s.p, [0, 0.4, 0]);
+    return !blocked(c.pos, c.q) && ground(c.pos, c.q) && !fenced(c.pos, c.q) && !fenced(c.pos, kn) && typeof FENCES !== "undefined" &&
+      !buildings.some(bd => c.pos[0] > bd.mn[0] - 0.5 && c.pos[0] < bd.mx[0] + 0.5 && c.pos[2] > bd.mn[2] - 0.5 && c.pos[2] < bd.mx[2] + 0.5); };
+  // the framing a reverse angle takes: its own side, the other side, then raised (each side); it only moves on along this list
+  const REVK = [[1, 0], [-1, 0], [1, 1], [-1, 1]], revK = {};
+  const revPick = (key, s, e, side, u, dr) => { for (let j = revK[key] || 0; j < REVK.length; j++) if (revOk(s, e, side * REVK[j][0], REVK[j][1], u, dr)) return revK[key] = j; return revK[key] = 9; };
   function shotCam() {
     const t = FILM.tc ?? FILM.t; let i = 0; while (i + 1 < SHOTS.length && SHOTS[i + 1][0] <= t) i++;
     foeShot = i; const [t0, kind, o] = SHOTS[i], u = t - t0, p = P(), e = vadd(p.pos, [0, 1.3, 0]), yaw = p.F ? p.F.bodyYaw : cam.yaw, fx = Math.sin(yaw), fz = Math.cos(yaw);
@@ -129,10 +144,11 @@
     // hug: a follow framing also fails when a wall runs within 2.5 m beside the camera (it fills half the frame)
     const hug = q => buildings.some(bd => segAABB(vadd(q, [-fz * 2.5, 0, fx * 2.5]), vadd(q, [fz * 2.5, 0, -fx * 2.5]), bd.mn, bd.mx));
     const bad = c => blocked(c.pos, e) || (c.hug && hug(c.pos));
-    const framing = (...c) => { const k = c.length, j0 = sm && sm.i === i ? Math.max(0, sm.j - jOff) : 0; let j = j0; if (bad(c[j])) { j = j0 + 1; while (j < k - 1 && bad(c[j])) j++; } pick = Math.min(j, k - 1); return c[pick]; };
-    let pick = 0, foe = null, rv, jOff = 0;
+    const framing = (...c) => { const k = c.length, j0 = sm && sm.i === i && sm.j - jOff < k ? Math.max(0, sm.j - jOff) : 0; let j = j0; if (bad(c[j])) { j = j0 + 1; while (j < k - 1 && bad(c[j])) j++; } pick = Math.min(j, k - 1); return c[pick]; };
+    let pick = 0, foe = null, rv, rk, tc, jOff = 0;
     if (kind === "aerial") { const a = u * o.w + i; pos = [o.c[0] + Math.sin(a) * o.r, heightAt(o.c[0], o.c[1]) + o.h, o.c[1] + Math.cos(a) * o.r]; at = [o.c[0], heightAt(o.c[0], o.c[1]), o.c[1]]; fov = 0.9; }
     else if (kind === "crane") { pos = [o.c[0] + o.r, heightAt(o.c[0], o.c[1]) + o.h - u * 1.1, o.c[1] - o.r * 0.6]; at = e; fov = 0.7; }
+    else if (kind === "follow" && o.tight && t >= o.tight[0] && t < o.tight[1] && !o.tightOff && (tc = tightCam(e, fx, fz)) && !(o.tightOff = blocked(tc.pos, e))) ({ pos, at, fov } = tc, pick = 50);
     else if (kind === "follow") ({ pos, at, fov } = framing({ pos: vadd(e, [-fx * 5.5, 1.4, -fz * 5.5]), at: vadd(e, [fx * 8, 0, fz * 8]), fov: 0.85, hug: true }, // a wall beside him: step out to the open side
       { pos: vadd(e, [-fx * 5 + fz * 3.5, 1.4, -fz * 5 - fx * 3.5]), at: vadd(e, [fx * 8, 0, fz * 8]), fov: 0.85, hug: true },
       { pos: vadd(e, [-fx * 5 - fz * 3.5, 1.4, -fz * 5 + fx * 3.5]), at: vadd(e, [fx * 8, 0, fz * 8]), fov: 0.85, hug: true }, { pos: vadd(e, [-fx * 6.5, 6, -fz * 6.5]), at: vadd(e, [fx * 4, -0.5, fz * 4]), fov: 0.85 })); // high: aimed just ahead of him, so he stays in the lower third
@@ -147,7 +163,8 @@
     else if (kind === "foe" && (foe = foeInView(e, fx, fz))) { // a long lens past his shoulder on the enemy he is fighting, so the enemy reads on screen
       const q = [foe.p[0], foe.p[1] + 1.1, foe.p[2]], d = vsub(q, e), z = Math.hypot(d[0], d[2]), sx = d[2] / z, sz = -d[0] / z;
       pos = vadd(e, [-d[0] / z * 3.2 + sx * 1.1, 0.5, -d[2] / z * 3.2 + sz * 1.1]); at = q; fov = clamp(2 * Math.atan(1.7 / (z * 0.3)), 0.05, 0.5); pick = 1 + INF.indexOf(foe); } // a new enemy is a clean cut
-    else if (kind === "rev" && (rv = o.seq.filter(r => r[0] <= u).pop()) && revOk(atPost(rv[1]), e, rv[2])) ({ pos, at, fov } = revCam(atPost(rv[1]), e, rv[2]), pick = 1 + o.seq.indexOf(rv)); // reverse angles on chosen enemies (o.seq: [from s into the shot, his post, side], picked from the fixed battle's --diag --foes log); each is a clean cut
+    else if (kind === "rev" && (rv = o.seq.filter(r => r[0] <= u).pop()) && (rk = revPick(i + ":" + o.seq.indexOf(rv), atPost(rv[1]), e, rv[2], u - rv[0], rv[3] || 0)) < 9) // reverse angles on chosen enemies (o.seq: [from s into the shot, his post, side, arc rad/s], picked from the fixed battle's --diag --foes log); each is a clean cut
+      ({ pos, at, fov } = revCam(atPost(rv[1]), e, rv[2] * REVK[rk][0], REVK[rk][1], u - rv[0], rv[3] || 0), pick = 1 + o.seq.indexOf(rv) * 4 + rk);
     else if (kind === "rev" && (jOff = 90)) ({ pos, at, fov } = framing({ pos: vadd(e, [-fx * 5.5, 1.4, -fz * 5.5]), at: vadd(e, [fx * 8, 0, fz * 8]), fov: 0.85, hug: true }, { pos: vadd(e, [-fx * 6.5, 6, -fz * 6.5]), at: vadd(e, [fx * 4, -0.5, fz * 4]), fov: 0.85 }), pick += 90); // the enemy is gone: back on the hero
     else if (kind === "foe") ({ pos, at, fov } = { pos: vadd(e, [-fx * 4.4 + fz * 1.5, 0.6, -fz * 4.4 - fx * 1.5]), at: vadd(e, [fx * 30, 0, fz * 30]), fov: 0.8 });
     else if (kind === "wide") { const A = o.at; pos = [A[0], heightAt(A[0], A[1]) + 6, A[1]]; at = e; fov = 0.45; }
@@ -163,6 +180,11 @@
     sm.t = t; sm.pos = vadd(o0, sm.op); sm.at = vadd(o0, sm.oa); sm.pos[1] = Math.max(sm.pos[1], heightAt(sm.pos[0], sm.pos[2]) + 0.35);
     return { pos: sm.pos, at: sm.at, fov };
   }
+  // fill light [from, to, strength] (film time, ramped over 1 s at each end): 3:06.5-3:13.5 he walks in the shed's shadow
+  const FILL = [[186.5, 193.5, 1.5]]; let fillNow = 0;
+  // the game sets its light (LIGHT) from the map in applyAtmo, inside each drawing; the fill is laid over it there: more
+  // ambient light, which lifts the shade far more than the sunlit side
+  const atmo0 = applyAtmo; applyAtmo = function (D) { atmo0(D); if (fillNow > 0) LIGHT = { ...LIGHT, amb: LIGHT.amb - fillNow }; };
   // ---- hooks into the game loop
   const step0 = step, render0 = render;
   step = function (h) { if (state === "playing") { drive(h); squad(); } step0(h); };
@@ -170,7 +192,8 @@
     const c = state === "playing" ? shotCam() : null; FILM.lastCam = c; // the sound pass places sounds around the camera actually drawn
     if (!c) return render0();
     const save = [cam.pos, cam.dir, cam.fov]; cam.pos = c.pos.slice(); cam.dir = vnorm(vsub(c.at, c.pos)); cam.fov = c.fov;
-    try { render0(); } finally { [cam.pos, cam.dir, cam.fov] = save; }
+    const t = FILM.tc ?? FILM.t; fillNow = FILL.reduce((m, [a, b, k]) => Math.max(m, k * clamp(Math.min(t - a, b - t), 0, 1)), 0);
+    try { render0(); } finally { [cam.pos, cam.dir, cam.fov] = save; fillNow = 0; }
   };
   // compose one frame: the 3D view, titles and fades (no game HUD)
   const comp = document.createElement("canvas"), cx = comp.getContext("2d");
@@ -187,6 +210,6 @@
   };
   // FILM.camAt: the film camera, for the sound pass (sound/events.js)
   FILM.probe = () => ""; FILM.setup = setup; FILM.camAt = () => state === "playing" ? shotCam() : null; FILM.shotDbg = () => sm && { i: sm.i, j: sm.j, pos: sm.pos.map(Math.round), at: sm.at.map(Math.round) }; FILM.foesDbg = () => { const e = vadd(P().pos, [0, 1.3, 0]); // --diag: every live enemy within 300 m: [his post (x, z: how a shot names him; INF indices shift as the dead are removed), x, z, distance, he sees the hero, reverse angle clear (side 1, side -1), fired in the last 2 s]
-    return enemies().map(s => [s.post ? s.post.map(v => +v.toFixed(1)).join(",") : "-", Math.round(s.p[0]), Math.round(s.p[2]), Math.round(Math.hypot(s.p[0] - e[0], s.p[2] - e[2])), +infLos(s.p, P().pos), +revOk(s, e, 1), +revOk(s, e, -1), +(now - (s.shotT ?? -9) < 2), s.st]).filter(r => r[3] < 300); };
+    return enemies().map(s => [s.post ? s.post.map(v => +v.toFixed(1)).join(",") : "-", Math.round(s.p[0]), Math.round(s.p[2]), Math.round(Math.hypot(s.p[0] - e[0], s.p[2] - e[2])), +infLos(s.p, P().pos), +revOk(s, e, 1), +revOk(s, e, -1), +revOk(s, e, 1, 1), +revOk(s, e, -1, 1), +(now - (s.shotT ?? -9) < 2), s.st]).filter(r => r[3] < 300); };
   FILM.dbg = () => ({ wi, waitT: +waitT.toFixed(1), n: ROUTE.length });
 })();
