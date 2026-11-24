@@ -1,5 +1,5 @@
 // Renders the Harrow Brook film from steelfront.html + director.js into an MP4.
-// usage: node render.js out.mp4 [--dry (simulate and log only) --diag d.jsonl (with --dry: where he sits on screen, per frame)
+// usage: node render.js out.mp4 [--dry (simulate and log only) --diag d.jsonl (with --dry: where he sits on screen, per frame; --foes: and every live enemy near him, see FILM.foesDbg)
 //   --sub K (draw K frames per simulated frame: the game runs its 6 fps frame unchanged and a frame is drawn after each of
 //   its steps (at most 50 ms), so at --fps 6, K=4 gives 24 drawn frames a second of exactly the 6 fps battle, spaced
 //   50/50/50/17 ms of battle time; a frame slowed by a kill or hit has fewer steps and its last drawing is held) --interp (motion-interpolate to out-fps instead of repeating frames) --w 640 --h 268 --fps 6 --gfx low --len 600 --from 0 --out-w 1280 --out-fps 24]
@@ -52,9 +52,9 @@ const CHROME = process.env.CHROME || '/usr/local/lib/ms-playwright/chromium-1208
     const [d, ev, dg] = await p.evaluate(([dt, t, tc, dry, skipLog, diag]) => { FILM.t = t; FILM.tc = tc; const n0 = now; __vt.advance(dt); if (dry) { const q = __probe(t, false); let g = null;
         if (diag) { const c = FILM.camAt(); if (c) { const f = vnorm(vsub(c.at, c.pos)), r = vnorm([f[2], 0, -f[0]]), u = [f[1] * r[2] - f[2] * r[1], f[2] * r[0] - f[0] * r[2], f[0] * r[1] - f[1] * r[0]], k = 1 / Math.tan(c.fov / 2), asp = innerWidth / innerHeight;
           const pr = q => { const d = vsub(q, c.pos), z = d[0] * f[0] + d[1] * f[1] + d[2] * f[2]; return z <= 0.05 ? [9, 9] : [+((d[0] * r[0] + d[1] * r[1] + d[2] * r[2]) / z * k / asp).toFixed(3), +((d[0] * u[0] + d[1] * u[1] + d[2] * u[2]) / z * k).toFixed(3)]; };
-          const s = FILM.shotDbg(), pp = player.pos; g = JSON.stringify({ t, i: s.i, j: s.j, head: pr([pp[0], pp[1] + 1.7, pp[2]]), feet: pr(pp) }); } }
+          const s = FILM.shotDbg(), pp = player.pos; g = JSON.stringify({ t, i: s.i, j: s.j, head: pr([pp[0], pp[1] + 1.7, pp[2]]), feet: pr(pp), ...(diag === 2 ? { foes: FILM.foesDbg() } : {}) }); } }
         return [FILM.probe(), skipLog ? q : null, g]; }
-      const f = FILM.frame(); return [f, __probe(tc, true).replace(/^\{/, `{"n0":${n0},`)]; }, [dt, t, tc, DRY || skip, !!skOut, !!DIAG]);
+      const f = FILM.frame(); return [f, __probe(tc, true).replace(/^\{/, `{"n0":${n0},`)]; }, [dt, t, tc, DRY || skip, !!skOut, DIAG ? (A.includes('--foes') ? 2 : 1) : 0]);
     if (dg) (globalThis.__dg ||= require('fs').createWriteStream(DIAG)).write(dg + '\n');
     if (ev && skip && skOut) skOut.write(ev + '\n'); else if (ev && evOut) evOut.write(ev + '\n');
     if (DRY && d && d !== globalThis.__lastC) console.log(`t=${t.toFixed(2)} ${d}`); globalThis.__lastC = d;

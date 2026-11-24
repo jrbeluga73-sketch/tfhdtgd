@@ -51,7 +51,7 @@ Every effect is synthesised in `mix.py`; no recordings are used:
 Then mux with `ffmpeg -i film.mp4 -i mix.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k film-sound.mp4`.
 The distant gunfire and far artillery under the mix are ambience, not tied to anything on screen.
 
-The `"foe"` shots (6:50, 7:38, 8:16) use a long lens past his shoulder on the nearest enemy he can see, with no wall, tree or bush in the way, so the enemy shows on screen.
+The `"foe"` shots (6:50, 7:38, 8:16 until v16; now `"rev"`, see v17) used a long lens past his shoulder on the nearest enemy he can see, with no wall, tree or bush in the way, so the enemy shows on screen.
 Elsewhere the enemy is usually 80–260 m away and only a few pixels tall. When no enemy is in view, the shot falls back
 to over-the-shoulder.
 
@@ -107,3 +107,29 @@ drawn frames a second now cover 1:20–1:38, 4:22–4:38, 7:38–7:54 and 8:16�
 over 1 s at each end); the footage and battle are unchanged, but he is still dark against the wall. At 8:20 the 8:16 foe shot has no enemy in view and shows its over-the-shoulder framing. Not fixed: at 7:51 the 7:38 foe shot cuts to a second enemy
 about 186 m away who does not read on screen, so it ends on the farmhouse; outside the foe shots enemies are still a few
 pixels tall.
+
+**v17: the foe shots are reverse angles.** The dug-in enemies kneel in a sandbagged scrape that faces south, towards
+him, so the long lens past his shoulder (the old `"foe"` shot) saw a helmet over sandbags 150–220 m away at best. At
+7:51 it also switched to another enemy about 186 m away who did not read, and ended on the farmhouse. The `"rev"` shot
+puts the camera 3.8 m behind and 1.8 m beside one named enemy at his post (`seq: [[seconds into the shot, his post, side], ...]`;
+a post names him, because INF indices shift as the dead are removed), looking down his line of fire. If he dies or the
+view is blocked it cuts back to the hero and stays there. The enemies were picked from the fixed battle:
+`render.js --dry --diag d.jsonl --foes` logs every live enemy within 300 m of the hero per frame (post, distance,
+whether he sees the hero, whether either reverse angle is clear, whether he fired in the last 2 s). The picks:
+
+- 6:50–7:04: the post at (221, 405) on the ridge, looking down on the church village. He is alive and sees the
+  village but does not fire (no enemy fires in that window).
+- 7:38–7:46 and 7:46–7:54: (284.5, 390) and (225.5, 420), both firing at the platoon for the whole shot.
+- 8:16–8:19 and 8:19–8:32: (289, 405), firing, then (285, 385), who waits at his post while the hero comes up the lane
+  in dead ground (he has no line of sight to him until 8:40).
+
+All three are rendered with `--sub 4` (`cut17.json`, logs `*.rev.sub24.*`). The camera does not change the battle, but it
+changes the `near` field (soldiers near the camera) and the order soldier ids are first seen, so these renders are
+checked with `NOCAM=1 subjoin.py` / `NOCAM=1 join.py`, which compare the hero, the strikes and every event's kind, place
+and team. `render/foescreen.py OUT.events.jsonl 0.62 A B` measures the nearest enemy in the frames actually drawn: in
+every drawn frame of all three shots he is on screen, 4.4–4.5 m from the lens and 46–47% of the frame tall.
+
+At 8:19 the first render took the reverse angle from side −1, which put the house wall across half the frame and a fence
+in front of him. The shot now uses side 1 (open ground behind him). A fence rail at his post still crosses his legs.
+24 drawn frames a second now cover 1:20–1:38, 4:22–4:38, 6:50–7:04, 7:38–7:54 and 8:16–8:32 (80 s). v17 is mixed with
+`MASTER=4.3` (−21.0 LUFS, peak −2.8 dBFS true peak) and assembled with `CRF=24` to stay under 50 MB.
